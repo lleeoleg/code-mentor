@@ -1,0 +1,49 @@
+.whatsnew-page-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-width: 640px;
+}
+
+.whatsnew-page-item {
+  padding-bottom: 24px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid var(--border);
+}
+
+.whatsnew-page-item:last-child {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.whatsnew-page-date {
+  display: block;
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+
+.whatsnew-page-content {
+  font-size: 1rem;
+  line-height: 1.6;
+  color: var(--text);
+}
+
+.whatsnew-page-content p {
+  margin: 0 0 0.5em;
+}
+
+.whatsnew-page-content p:last-child {
+  margin-bottom: 0;
+}
+
+.whatsnew-page-content a {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+.whatsnew-page-content a:hover {
+  color: var(--accent-hover);
+}

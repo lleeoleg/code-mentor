@@ -1,0 +1,126 @@
+.whatsnew-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 48px 16px 16px;
+  z-index: 1000;
+  overflow-y: auto;
+}
+
+.whatsnew-modal {
+  background: var(--bg-card, #fff);
+  border-radius: var(--radius, 8px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  width: 100%;
+  max-width: 560px;
+  max-height: calc(100vh - 64px);
+  display: flex;
+  flex-direction: column;
+}
+
+.whatsnew-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border, #e5e7eb);
+  flex-shrink: 0;
+}
+
+.whatsnew-title {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--text, #111);
+}
+
+.whatsnew-close {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: none;
+  background: none;
+  font-size: 1.75rem;
+  line-height: 1;
+  color: var(--text-muted, #6b7280);
+  cursor: pointer;
+  border-radius: var(--radius-sm, 6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.whatsnew-close:hover {
+  background: var(--bg-alt, #f3f4f6);
+  color: var(--text, #111);
+}
+
+.whatsnew-body {
+  padding: 20px 24px 24px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.whatsnew-loading,
+.whatsnew-error,
+.whatsnew-empty {
+  margin: 0;
+  color: var(--text-muted, #6b7280);
+  font-size: 1rem;
+}
+
+.whatsnew-error {
+  color: var(--error, #dc2626);
+}
+
+.whatsnew-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.whatsnew-item {
+  padding-bottom: 20px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--border, #e5e7eb);
+}
+
+.whatsnew-item:last-child {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.whatsnew-date {
+  display: block;
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--text, #111);
+  margin-bottom: 8px;
+}
+
+.whatsnew-content {
+  font-size: 1rem;
+  line-height: 1.6;
+  color: var(--text, #111);
+}
+
+.whatsnew-content p {
+  margin: 0 0 0.5em;
+}
+
+.whatsnew-content p:last-child {
+  margin-bottom: 0;
+}
+
+.whatsnew-content a {
+  color: var(--accent, #2563eb);
+  text-decoration: underline;
+}
+
+.whatsnew-content a:hover {
+  color: var(--accent-hover, #1d4ed8);
+}

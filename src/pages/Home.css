@@ -1,0 +1,318 @@
+/* Поисковая строка */
+.search-strip {
+  padding: 20px 0;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+}
+
+.search-strip-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.search-strip-input-wrap {
+  flex: 1;
+  min-width: 200px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.search-strip-input-wrap:focus-within {
+  border-color: var(--accent);
+  outline: none;
+}
+
+.search-strip-icon {
+  flex-shrink: 0;
+  color: var(--text-muted);
+}
+
+.search-strip-input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: none;
+  font-size: 0.95rem;
+  padding: 0;
+  line-height: 1.5;
+  border-radius: 0;
+}
+
+.search-strip-input::selection {
+  border-radius: 0;
+}
+
+.search-strip-input:focus {
+  outline: none;
+}
+
+.search-strip-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+  color: var(--text);
+  cursor: pointer;
+  user-select: none;
+}
+
+.search-strip-check input {
+  width: auto;
+  margin: 0;
+}
+
+.search-strip-btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: #0d0d0d;
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.search-strip-btn:hover {
+  background: #252525;
+}
+
+/* Заголовок секции + стрелка "Ещё" */
+.section-head-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.section-title-with-arrow {
+  margin: 0;
+}
+
+.section-arrow {
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.section-more-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #0d9488;
+  font-size: 0.95rem;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.section-more-link:hover {
+  color: #0f766e;
+}
+
+/* Вкладки курсов (как в референсе) */
+.course-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.course-tab {
+  padding: 12px 4px;
+  margin-bottom: -1px;
+  border: none;
+  background: none;
+  font-size: 0.95rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-family: inherit;
+  border-bottom: 3px solid transparent;
+  transition: color 0.2s, border-color 0.2s;
+}
+
+.course-tab:hover {
+  color: var(--text);
+}
+
+.course-tab.active {
+  color: #0d0d0d;
+  font-weight: 600;
+  border-bottom-color: #0d0d0d;
+}
+
+/* Обёртка сетки + стрелка "больше" */
+.course-grid-wrap {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.course-grid-wrap .course-grid {
+  flex: 1;
+}
+
+.course-grid-more {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  margin-top: 80px;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  color: var(--text-muted);
+  transition: border-color 0.2s, color 0.2s, background 0.2s;
+}
+
+.course-grid-more:hover {
+  border-color: #0d9488;
+  color: #0d9488;
+  background: rgba(13, 148, 136, 0.08);
+}
+
+/* Планшеты и телефоны: компактные отступы, баннер и сетка */
+@media (max-width: 992px) {
+  /* Равномерные отступы у блока поиска под шапкой */
+  .search-strip {
+    padding: 10px 0;
+  }
+  .search-strip-form {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .search-strip-input-wrap {
+    min-width: 0;
+  }
+
+  /* Убираем большие отступы до баннера и после баннера */
+  .hero {
+    padding: 8px 0 12px;
+  }
+  .hero-bg {
+    margin-bottom: 8px;
+  }
+  .hero-content {
+    padding: 12px 16px;
+  }
+
+  /* Меньший отступ после всего блока hero (до «Онлайн-курсы») */
+  .home-courses {
+    padding-top: 20px;
+  }
+
+  .course-grid-wrap {
+    flex-direction: column;
+  }
+  .course-grid-more {
+    margin-top: 0;
+    align-self: center;
+  }
+}
+
+/* Карточка на главной — компактная, с сердечком в избранное */
+.home-courses .course-grid,
+.home-programs .course-grid {
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 14px;
+}
+.course-card-ref {
+  max-height: 260px;
+  min-height: 0;
+}
+.course-card-ref .course-card-top {
+  height: 72px;
+  padding: 8px;
+}
+.course-card-ref .course-card-logo {
+  width: 48px;
+  height: 48px;
+}
+.course-card-ref .course-card-body {
+  padding: 10px 12px 12px;
+}
+.course-card-ref .course-fav-btn {
+  top: 8px;
+  right: 8px;
+  width: 32px;
+  height: 32px;
+}
+.course-card-ref .course-fav-btn svg {
+  width: 18px;
+  height: 18px;
+}
+.course-card-square:not(.course-card-ref) .course-card-top {
+  background: var(--bg-alt);
+}
+.course-card-square .course-card-top:empty {
+  min-height: 0;
+  height: 0;
+  padding: 0;
+}
+
+.course-card-ref .course-card-title {
+  font-size: 0.98rem;
+  margin-bottom: 4px;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  line-clamp: 2;
+  min-height: 0;
+}
+
+.course-card-meta {
+  margin: 0 0 6px;
+  font-size: 0.8rem;
+}
+
+.course-card-ref .course-card-desc {
+  font-size: 0.8rem;
+  line-height: 1.4;
+  margin-bottom: 0;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+.course-card-ref .course-card-price {
+  font-size: 0.9rem;
+  margin-top: 4px;
+}
+
+.course-card-price {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.home-courses {
+  padding-top: 32px;
+  padding-bottom: 40px;
+}
+
+.home-programs {
+  padding-top: 40px;
+  padding-bottom: 48px;
+  border-top: 1px solid var(--border);
+}
+
+.home-login-cta {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 32px;
+}
+
+.filter-label {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  margin-right: 4px;
+}
