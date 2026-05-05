@@ -1,4 +1,5 @@
 from django.db import models
+from django.utils import timezone
 
 
 class Level(models.TextChoices):
@@ -106,6 +107,157 @@ class Enrollment(models.Model):
 
     def __str__(self):
         return f'{self.user.username} — {self.course.title}'
+
+
+class CourseFavorite(models.Model):
+    """Избранный курс пользователя (синхронизация между устройствами)."""
+    user = models.ForeignKey(
+        'auth.User',
+        on_delete=models.CASCADE,
+        related_name='course_favorites',
+    )
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='favorited_by')
+    created_at = models.DateTimeField('Добавлено', auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Избранный курс'
+        verbose_name_plural = 'Избранные курсы'
+        constraints = [
+            models.UniqueConstraint(fields=['user', 'course'], name='unique_user_course_favorite'),
+        ]
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'{self.user.username} ♥ {self.course.title}'
+
+
+class LessonCompletion(models.Model):
+    """Отметка: урок пройден (прогресс, синхронизация между устройствами)."""
+    user = models.ForeignKey(
+        'auth.User',
+        on_delete=models.CASCADE,
+        related_name='lesson_completions',
+    )
+    lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE, related_name='completions')
+    completed_at = models.DateTimeField('Завершён', auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Пройденный урок'
+        verbose_name_plural = 'Пройденные уроки'
+        constraints = [
+            models.UniqueConstraint(fields=['user', 'lesson'], name='unique_user_lesson_completion'),
+        ]
+        ordering = ['-completed_at']
+
+    def __str__(self):
+        return f'{self.user.username} — {self.lesson}'
+
+
+class CourseExam(models.Model):
+    """Финальный тест по курсу."""
+    course = models.OneToOneField(Course, on_delete=models.CASCADE, related_name='final_exam')
+    is_active = models.BooleanField('Активен', default=True)
+    pass_percent = models.PositiveIntegerField('Порог прохождения (%)', default=80)
+    questions_count = models.PositiveIntegerField('Количество вопросов', default=10)
+    created_at = models.DateTimeField('Создан', auto_now_add=True)
+    updated_at = models.DateTimeField('Обновлён', auto_now=True)
+
+    class Meta:
+        verbose_name = 'Финальный тест'
+        verbose_name_plural = 'Финальные тесты'
+
+    def __str__(self):
+        return f'Exam: {self.course.title}'
+
+
+class ExamQuestion(models.Model):
+    exam = models.ForeignKey(CourseExam, on_delete=models.CASCADE, related_name='questions')
+    text = models.TextField('Вопрос (ru)')
+    text_en = models.TextField('Question (en)', blank=True, default='')
+    order = models.PositiveIntegerField('Порядок', default=0)
+
+    class Meta:
+        verbose_name = 'Вопрос теста'
+        verbose_name_plural = 'Вопросы теста'
+        ordering = ['exam', 'order', 'id']
+
+    def __str__(self):
+        return f'Q{self.order}: {self.text[:40]}'
+
+
+class ExamChoice(models.Model):
+    question = models.ForeignKey(ExamQuestion, on_delete=models.CASCADE, related_name='choices')
+    text = models.CharField('Вариант (ru)', max_length=500)
+    text_en = models.CharField('Choice (en)', max_length=500, blank=True, default='')
+    is_correct = models.BooleanField('Правильный', default=False)
+
+    class Meta:
+        verbose_name = 'Вариант ответа'
+        verbose_name_plural = 'Варианты ответов'
+
+    def __str__(self):
+        return self.text[:50]
+
+
+class ExamAttempt(models.Model):
+    class Status(models.TextChoices):
+        IN_PROGRESS = 'in_progress', 'В процессе'
+        SUBMITTED = 'submitted', 'Отправлен'
+        PASSED = 'passed', 'Пройден'
+        FAILED = 'failed', 'Не пройден'
+
+    exam = models.ForeignKey(CourseExam, on_delete=models.CASCADE, related_name='attempts')
+    user = models.ForeignKey('auth.User', on_delete=models.CASCADE, related_name='exam_attempts')
+    status = models.CharField('Статус', max_length=20, choices=Status.choices, default=Status.IN_PROGRESS)
+    score_percent = models.PositiveIntegerField('Результат (%)', default=0)
+    max_questions = models.PositiveIntegerField('Макс. вопросов', default=10)
+    correct_answers = models.PositiveIntegerField('Правильных ответов', default=0)
+    started_at = models.DateTimeField('Начат', auto_now_add=True)
+    submitted_at = models.DateTimeField('Отправлен', null=True, blank=True)
+
+    class Meta:
+        verbose_name = 'Попытка теста'
+        verbose_name_plural = 'Попытки теста'
+        ordering = ['-started_at']
+
+    def __str__(self):
+        return f'{self.user.username} {self.exam.course.title} ({self.status})'
+
+    @property
+    def is_submitted(self) -> bool:
+        return self.status in (self.Status.SUBMITTED, self.Status.PASSED, self.Status.FAILED)
+
+
+class ExamAnswer(models.Model):
+    attempt = models.ForeignKey(ExamAttempt, on_delete=models.CASCADE, related_name='answers')
+    question = models.ForeignKey(ExamQuestion, on_delete=models.CASCADE, related_name='answers')
+    selected_choice = models.ForeignKey(ExamChoice, on_delete=models.SET_NULL, null=True, blank=True)
+    is_correct = models.BooleanField('Правильно', default=False)
+
+    class Meta:
+        verbose_name = 'Ответ на вопрос'
+        verbose_name_plural = 'Ответы на вопросы'
+        unique_together = [['attempt', 'question']]
+
+    def __str__(self):
+        return f'Answer attempt={self.attempt_id} q={self.question_id}'
+
+
+class CourseCertificate(models.Model):
+    """Сертификат, выданный пользователю по итогам теста."""
+    user = models.ForeignKey('auth.User', on_delete=models.CASCADE, related_name='course_certificates')
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='certificates')
+    issued_at = models.DateTimeField('Выдан', default=timezone.now)
+    certificate_number = models.CharField('Номер сертификата', max_length=64, unique=True)
+
+    class Meta:
+        verbose_name = 'Сертификат'
+        verbose_name_plural = 'Сертификаты'
+        unique_together = [['user', 'course']]
+        ordering = ['-issued_at']
+
+    def __str__(self):
+        return f'CERT {self.certificate_number} — {self.user.username} — {self.course.title}'
 
 
 class Comment(models.Model):

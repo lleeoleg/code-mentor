@@ -1,5 +1,18 @@
 from django.contrib import admin
-from .models import Course, NewsItem, Module, Lesson, Enrollment, Comment
+from .models import (
+    Course,
+    NewsItem,
+    Module,
+    Lesson,
+    Enrollment,
+    Comment,
+    CourseExam,
+    ExamQuestion,
+    ExamChoice,
+    ExamAttempt,
+    ExamAnswer,
+    CourseCertificate,
+)
 
 
 @admin.register(Course)
@@ -63,3 +76,74 @@ class NewsItemAdmin(admin.ModelAdmin):
     def content_preview(self, obj):
         return (obj.content[:60] + '…') if len(obj.content) > 60 else obj.content
     content_preview.short_description = 'Текст'
+
+
+class ExamChoiceInline(admin.TabularInline):
+    model = ExamChoice
+    extra = 0
+
+
+class ExamQuestionInline(admin.StackedInline):
+    model = ExamQuestion
+    extra = 0
+    ordering = ('order', 'id')
+    show_change_link = True
+
+
+@admin.register(CourseExam)
+class CourseExamAdmin(admin.ModelAdmin):
+    list_display = ('course', 'is_active', 'pass_percent', 'questions_count', 'updated_at')
+    list_filter = ('is_active', 'pass_percent')
+    search_fields = ('course__title',)
+    inlines = (ExamQuestionInline,)
+
+
+@admin.register(ExamQuestion)
+class ExamQuestionAdmin(admin.ModelAdmin):
+    list_display = ('id', 'exam', 'order', 'text_preview')
+    list_filter = ('exam',)
+    search_fields = ('text', 'exam__course__title')
+    ordering = ('exam', 'order', 'id')
+    inlines = (ExamChoiceInline,)
+
+    def text_preview(self, obj):
+        return (obj.text[:80] + '…') if len(obj.text) > 80 else obj.text
+    text_preview.short_description = 'Вопрос'
+
+
+@admin.register(ExamChoice)
+class ExamChoiceAdmin(admin.ModelAdmin):
+    list_display = ('id', 'question', 'text_preview', 'is_correct')
+    list_filter = ('is_correct', 'question__exam')
+    search_fields = ('text', 'question__text')
+
+    def text_preview(self, obj):
+        return (obj.text[:80] + '…') if len(obj.text) > 80 else obj.text
+    text_preview.short_description = 'Вариант'
+
+
+@admin.register(ExamAttempt)
+class ExamAttemptAdmin(admin.ModelAdmin):
+    list_display = ('id', 'user', 'course', 'status', 'score_percent', 'started_at', 'submitted_at')
+    list_filter = ('status', 'exam__course')
+    search_fields = ('user__username', 'exam__course__title')
+    ordering = ('-started_at',)
+
+    def course(self, obj):
+        return obj.exam.course
+    course.short_description = 'Курс'
+
+
+@admin.register(ExamAnswer)
+class ExamAnswerAdmin(admin.ModelAdmin):
+    list_display = ('id', 'attempt', 'question', 'selected_choice', 'is_correct')
+    list_filter = ('is_correct', 'question__exam')
+    search_fields = ('question__text', 'attempt__user__username')
+
+
+@admin.register(CourseCertificate)
+class CourseCertificateAdmin(admin.ModelAdmin):
+    list_display = ('certificate_number', 'user', 'course', 'issued_at')
+    list_filter = ('course', 'issued_at')
+    search_fields = ('certificate_number', 'user__username', 'course__title')
+    ordering = ('-issued_at',)

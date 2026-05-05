@@ -1,21 +1,44 @@
 import json
 import urllib.parse
 import urllib.request
+import uuid
+from datetime import timedelta
+from io import BytesIO
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.db.models import Q
+from django.db import transaction
+from django.db.utils import OperationalError
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404
 from django.views import View
+from django.utils import timezone
 from rest_framework import generics, status
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.views import TokenObtainPairView as JWTTokenObtainPairView
+from rest_framework_simplejwt.views import TokenRefreshView as JWTTokenRefreshView
 
-from .models import Course, NewsItem, Module, Lesson, Enrollment, Comment
+from .models import (
+    Course,
+    NewsItem,
+    Module,
+    Lesson,
+    Enrollment,
+    CourseFavorite,
+    LessonCompletion,
+    Comment,
+    CourseExam,
+    ExamAttempt,
+    ExamQuestion,
+    ExamChoice,
+    ExamAnswer,
+    CourseCertificate,
+)
 from .serializers import (
     UserRegisterSerializer,
     UserMeSerializer,
@@ -26,7 +49,20 @@ from .serializers import (
     EnrollmentSerializer,
     CommentSerializer,
     CommentCreateSerializer,
+    CourseExamInfoSerializer,
+    ExamQuestionPublicSerializer,
+    ExamSubmitSerializer,
 )
+
+
+class TokenObtainPairView(JWTTokenObtainPairView):
+    """Выдача JWT по username/password. Без AllowAny логин блокируется глобальным IsAuthenticated."""
+    permission_classes = (AllowAny,)
+
+
+class TokenRefreshView(JWTTokenRefreshView):
+    """Обновление access по refresh. Разрешаем без авторизации (передаётся refresh в body)."""
+    permission_classes = (AllowAny,)
 
 
 class RegisterView(generics.CreateAPIView):
@@ -140,6 +176,281 @@ class CourseDetailAPIView(generics.RetrieveAPIView):
     authentication_classes = ()
 
 
+class CourseExamInfoView(generics.GenericAPIView):
+    """Информация о финальном тесте и статусе пользователя."""
+    permission_classes = (AllowAny,)
+
+    def get(self, request, pk):
+        course = get_object_or_404(Course, pk=pk)
+        exam = getattr(course, 'final_exam', None)
+        if not exam or not exam.is_active:
+            return Response({'has_exam': False})
+
+        data = CourseExamInfoSerializer(exam).data
+
+        attempts_limit = 50  # временно для тестирования
+        attempts_left = attempts_limit
+        reset_at = None
+        attempts_recent = []
+        last_attempt = None
+        has_certificate = False
+        if request.user and request.user.is_authenticated:
+            since = timezone.now() - timedelta(hours=3)
+            window_qs = ExamAttempt.objects.filter(exam=exam, user=request.user, started_at__gte=since).order_by('started_at')
+            used = window_qs.count()
+            attempts_left = max(0, attempts_limit - used)
+            if used >= attempts_limit:
+                first_in_window = window_qs.first()
+                if first_in_window:
+                    reset_at = first_in_window.started_at + timedelta(hours=3)
+
+            la = ExamAttempt.objects.filter(exam=exam, user=request.user).order_by('-started_at').first()
+            if la:
+                last_attempt = {
+                    'id': la.id,
+                    'status': la.status,
+                    'score_percent': la.score_percent,
+                    'started_at': la.started_at,
+                    'submitted_at': la.submitted_at,
+                }
+            attempts_recent = [
+                {
+                    'id': a.id,
+                    'status': a.status,
+                    'score_percent': a.score_percent,
+                    'started_at': a.started_at,
+                    'submitted_at': a.submitted_at,
+                }
+                for a in ExamAttempt.objects.filter(exam=exam, user=request.user).order_by('-started_at')[:10]
+            ]
+            has_certificate = CourseCertificate.objects.filter(course=course, user=request.user).exists()
+
+        return Response({
+            'has_exam': True,
+            'exam': data,
+            'attempts_left_24h': attempts_left,
+            'attempts_reset_at': reset_at,
+            'attempts_recent': attempts_recent,
+            'last_attempt': last_attempt,
+            'has_certificate': has_certificate,
+        })
+
+
+class CourseExamStartView(generics.GenericAPIView):
+    """Старт финального теста. Создаёт попытку и отдаёт вопросы."""
+    permission_classes = (IsAuthenticated,)
+
+    def post(self, request, pk):
+        course = get_object_or_404(Course, pk=pk)
+        exam = getattr(course, 'final_exam', None)
+        if not exam or not exam.is_active:
+            return Response({'detail': 'Тест недоступен.'}, status=status.HTTP_404_NOT_FOUND)
+
+        # Лимит попыток: временно увеличен для тестирования.
+        since = timezone.now() - timedelta(hours=3)
+        window_qs = ExamAttempt.objects.filter(exam=exam, user=request.user, started_at__gte=since).order_by('started_at')
+        used = window_qs.count()
+        if used >= 50:
+            first_in_window = window_qs.first()
+            reset_at = (first_in_window.started_at + timedelta(hours=3)) if first_in_window else None
+            return Response(
+                {
+                    'detail': 'Лимит попыток: 50 за последние 3 часа.',
+                    'attempts_reset_at': reset_at,
+                },
+                status=status.HTTP_429_TOO_MANY_REQUESTS,
+            )
+
+        try:
+            questions = list(
+                exam.questions.prefetch_related('choices')
+                .all()
+                .order_by('order', 'id')[: exam.questions_count]
+            )
+        except OperationalError:
+            return Response(
+                {
+                    'detail': 'База данных не обновлена под новые поля тестов. Примените миграции.',
+                    'hint': 'python manage.py migrate',
+                },
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+        if len(questions) < 1:
+            return Response({'detail': 'В тесте пока нет вопросов.'}, status=status.HTTP_409_CONFLICT)
+
+        attempt = ExamAttempt.objects.create(
+            exam=exam,
+            user=request.user,
+            status=ExamAttempt.Status.IN_PROGRESS,
+            max_questions=min(exam.questions_count, len(questions)),
+        )
+
+        return Response({
+            'attempt': {
+                'id': attempt.id,
+                'status': attempt.status,
+                'started_at': attempt.started_at,
+            },
+            'exam': CourseExamInfoSerializer(exam).data,
+            'questions': ExamQuestionPublicSerializer(questions, many=True, context={'request': request}).data,
+        })
+
+
+class ExamAttemptSubmitView(generics.GenericAPIView):
+    """Отправка ответов и подсчёт результата."""
+    permission_classes = (IsAuthenticated,)
+    serializer_class = ExamSubmitSerializer
+
+    def post(self, request, attempt_id: int):
+        attempt = get_object_or_404(ExamAttempt, pk=attempt_id, user=request.user)
+        if attempt.is_submitted:
+            return Response({'detail': 'Попытка уже отправлена.'}, status=status.HTTP_409_CONFLICT)
+
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        answers = serializer.validated_data['answers']
+
+        exam = attempt.exam
+        questions = list(exam.questions.prefetch_related('choices').all().order_by('order', 'id')[: attempt.max_questions])
+        qids = {q.id for q in questions}
+
+        # Проверяем, что ответы относятся к вопросам теста.
+        normalized = []
+        for a in answers:
+            if a['question_id'] in qids:
+                normalized.append(a)
+
+        # Подсчёт: один правильный вариант на вопрос.
+        correct = 0
+        review = []
+        with transaction.atomic():
+            for q in questions:
+                chosen = next((a for a in normalized if a['question_id'] == q.id), None)
+                choice_obj = None
+                is_correct = False
+                if chosen:
+                    choice_obj = ExamChoice.objects.filter(id=chosen['choice_id'], question=q).first()
+                    if choice_obj and choice_obj.is_correct:
+                        is_correct = True
+                correct_choice = next((c for c in q.choices.all() if c.is_correct), None)
+                ExamAnswer.objects.update_or_create(
+                    attempt=attempt,
+                    question=q,
+                    defaults={'selected_choice': choice_obj, 'is_correct': is_correct},
+                )
+                if is_correct:
+                    correct += 1
+                review.append({
+                    'question_id': q.id,
+                    'selected_choice_id': choice_obj.id if choice_obj else None,
+                    'correct_choice_id': correct_choice.id if correct_choice else None,
+                    'is_correct': is_correct,
+                })
+
+            percent = int(round((correct / max(1, len(questions))) * 100))
+            passed = percent >= int(exam.pass_percent or 80)
+
+            attempt.correct_answers = correct
+            attempt.score_percent = percent
+            attempt.submitted_at = timezone.now()
+            attempt.status = ExamAttempt.Status.PASSED if passed else ExamAttempt.Status.FAILED
+            attempt.save(update_fields=['correct_answers', 'score_percent', 'submitted_at', 'status'])
+
+            cert_number = None
+            if passed:
+                cert, _created = CourseCertificate.objects.get_or_create(
+                    user=request.user,
+                    course=exam.course,
+                    defaults={'certificate_number': f'CM-{uuid.uuid4().hex[:12].upper()}'},
+                )
+                cert_number = cert.certificate_number
+
+        return Response({
+            'attempt': {
+                'id': attempt.id,
+                'status': attempt.status,
+                'score_percent': attempt.score_percent,
+                'correct_answers': attempt.correct_answers,
+                'total_questions': len(questions),
+                'pass_percent': exam.pass_percent,
+            },
+            'certificate_number': cert_number,
+            'review': review,
+        })
+
+
+class CourseCertificatePdfView(generics.GenericAPIView):
+    """Скачать сертификат в PDF (EN)."""
+    permission_classes = (IsAuthenticated,)
+
+    def get(self, request, pk):
+        course = get_object_or_404(Course, pk=pk)
+        cert = CourseCertificate.objects.filter(course=course, user=request.user).first()
+        if not cert:
+            return Response({'detail': 'Сертификат не найден.'}, status=status.HTTP_404_NOT_FOUND)
+
+        # PDF: делаем картинку Pillow и сохраняем в PDF (без внешних зависимостей).
+        from PIL import Image, ImageDraw, ImageFont
+
+        width, height = 1654, 1169  # примерно A4 landscape при 150dpi
+        img = Image.new('RGB', (width, height), color=(248, 250, 252))
+        draw = ImageDraw.Draw(img)
+
+        # Пытаемся взять системный шрифт; если нет — Pillow default.
+        def load_font(size: int):
+            try:
+                return ImageFont.truetype('arial.ttf', size)
+            except Exception:
+                return ImageFont.load_default()
+
+        title_font = load_font(72)
+        name_font = load_font(56)
+        text_font = load_font(34)
+        small_font = load_font(28)
+
+        # Рамка
+        margin = 60
+        draw.rectangle([margin, margin, width - margin, height - margin], outline=(30, 41, 59), width=6)
+
+        # Заголовки
+        draw.text((width // 2, 140), 'CERTIFICATE OF COMPLETION', fill=(15, 23, 42), anchor='mm', font=title_font)
+        draw.text((width // 2, 240), 'This certifies that', fill=(55, 65, 81), anchor='mm', font=text_font)
+
+        full_name = (request.user.get_full_name() or request.user.username).strip()
+        draw.text((width // 2, 340), full_name, fill=(17, 24, 39), anchor='mm', font=name_font)
+
+        draw.text((width // 2, 430), 'has successfully passed the final exam for', fill=(55, 65, 81), anchor='mm', font=text_font)
+        draw.text((width // 2, 505), f'Module: {course.title}', fill=(17, 24, 39), anchor='mm', font=text_font)
+
+        date_str = cert.issued_at.strftime('%Y-%m-%d')
+        draw.text((width // 2, 610), f'Date: {date_str}', fill=(55, 65, 81), anchor='mm', font=text_font)
+
+        # Печать (простая)
+        seal_center = (width - 260, height - 240)
+        seal_r = 120
+        draw.ellipse(
+            [seal_center[0] - seal_r, seal_center[1] - seal_r, seal_center[0] + seal_r, seal_center[1] + seal_r],
+            outline=(220, 38, 38),
+            width=10,
+        )
+        draw.text(seal_center, 'CODEMENTOR\nSEAL', fill=(220, 38, 38), anchor='mm', font=small_font, align='center')
+
+        # Номер сертификата
+        draw.text((margin + 10, height - margin - 30), f'Certificate No: {cert.certificate_number}', fill=(55, 65, 81), anchor='ls', font=small_font)
+
+        buf = BytesIO()
+        img.save(buf, format='PDF')
+        pdf_bytes = buf.getvalue()
+        buf.close()
+
+        from django.http import HttpResponse
+
+        filename = f'certificate_course_{course.id}.pdf'
+        resp = HttpResponse(pdf_bytes, content_type='application/pdf')
+        resp['Content-Disposition'] = f'attachment; filename="{filename}"'
+        return resp
+
+
 class CreateCheckoutSessionView(generics.GenericAPIView):
     """Создание Stripe Checkout Session для оплаты курса. POST → { url: checkout_url }."""
     permission_classes = (IsAuthenticated,)
@@ -161,8 +472,15 @@ class CreateCheckoutSessionView(generics.GenericAPIView):
                 {'detail': 'Этот курс бесплатный.'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        amount_kopecks = int(float(price) * 100)
-        if amount_kopecks <= 0:
+        price_float = float(price)
+        is_power_bi = 'Power BI' in (course.title or '')
+        if is_power_bi:
+            currency = 'kzt'
+            unit_amount = int(price_float * 100)
+        else:
+            currency = 'rub'
+            unit_amount = int(price_float * 100)
+        if unit_amount <= 0:
             return Response(
                 {'detail': 'Некорректная цена курса.'},
                 status=status.HTTP_400_BAD_REQUEST,
@@ -178,8 +496,8 @@ class CreateCheckoutSessionView(generics.GenericAPIView):
                 payment_method_types=['card'],
                 line_items=[{
                     'price_data': {
-                        'currency': 'rub',
-                        'unit_amount': amount_kopecks,
+                        'currency': currency,
+                        'unit_amount': unit_amount,
                         'product_data': {
                             'name': course.title,
                             'description': (course.description or '')[:500] or course.title,
@@ -270,6 +588,94 @@ class MyEnrollmentsView(generics.ListAPIView):
 
     def get_queryset(self):
         return Enrollment.objects.filter(user=self.request.user).select_related('course')
+
+
+class MyFavoritesView(generics.GenericAPIView):
+    """Избранные курсы: список и добавление."""
+    permission_classes = (IsAuthenticated,)
+
+    def get(self, request):
+        qs = CourseFavorite.objects.filter(user=request.user).select_related('course')
+        course_ids = list(qs.values_list('course_id', flat=True))
+        courses_data = CourseSerializer([f.course for f in qs], many=True).data
+        return Response({'course_ids': course_ids, 'courses': courses_data})
+
+    def post(self, request):
+        course_id = request.data.get('course_id')
+        try:
+            course_id = int(course_id)
+        except (TypeError, ValueError):
+            return Response({'detail': 'Нужен course_id (число).'}, status=status.HTTP_400_BAD_REQUEST)
+        get_object_or_404(Course, pk=course_id)
+        _, created = CourseFavorite.objects.get_or_create(user=request.user, course_id=course_id)
+        return Response({'detail': 'Добавлено в избранное.'}, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
+
+
+class FavoriteDeleteView(generics.GenericAPIView):
+    """Удалить курс из избранного."""
+    permission_classes = (IsAuthenticated,)
+
+    def delete(self, request, course_id):
+        CourseFavorite.objects.filter(user=request.user, course_id=course_id).delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class LessonProgressView(generics.GenericAPIView):
+    """Прогресс по урокам: словарь course_id -> [lesson_id, ...]."""
+    permission_classes = (IsAuthenticated,)
+
+    def get(self, request):
+        qs = LessonCompletion.objects.filter(user=request.user).select_related('lesson__module')
+        by_course = {}
+        for row in qs:
+            cid = row.lesson.module.course_id
+            by_course.setdefault(str(cid), []).append(row.lesson_id)
+        for k in by_course:
+            by_course[k] = sorted(set(by_course[k]))
+        return Response({'by_course': by_course})
+
+    def post(self, request):
+        lesson_id = request.data.get('lesson_id')
+        try:
+            lesson_id = int(lesson_id)
+        except (TypeError, ValueError):
+            return Response({'detail': 'Нужен lesson_id (число).'}, status=status.HTTP_400_BAD_REQUEST)
+        lesson = get_object_or_404(Lesson, pk=lesson_id)
+        _, created = LessonCompletion.objects.get_or_create(user=request.user, lesson=lesson)
+        return Response(
+            {'detail': 'Урок отмечен пройденным.', 'course_id': lesson.module.course_id},
+            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
+        )
+
+
+class LessonProgressSyncView(generics.GenericAPIView):
+    """Массовая синхронизация пройденных уроков (объединение с локальными данными)."""
+    permission_classes = (IsAuthenticated,)
+
+    def post(self, request):
+        by_course = request.data.get('by_course')
+        lesson_ids = request.data.get('lesson_ids')
+        ids = set()
+        if isinstance(by_course, dict):
+            for v in by_course.values():
+                if isinstance(v, list):
+                    for x in v:
+                        try:
+                            ids.add(int(x))
+                        except (TypeError, ValueError):
+                            pass
+        if isinstance(lesson_ids, list):
+            for x in lesson_ids:
+                try:
+                    ids.add(int(x))
+                except (TypeError, ValueError):
+                    pass
+        if not ids:
+            return Response({'detail': 'Передайте by_course или lesson_ids.', 'count': 0})
+        valid_ids = set(Lesson.objects.filter(id__in=ids).values_list('id', flat=True))
+        for lid in valid_ids:
+            LessonCompletion.objects.get_or_create(user=request.user, lesson_id=lid)
+        return Response({'detail': 'Синхронизировано.', 'count': len(valid_ids)})
 
 
 class UserActivityView(generics.GenericAPIView):
@@ -470,8 +876,6 @@ class FacebookLoginStubView(View):
 class TwitterLoginStubView(View):
     def get(self, request):
         return _social_stub(request, 'twitter')
-
-
 class YandexLoginStubView(View):
     def get(self, request):
         return _social_stub(request, 'yandex')

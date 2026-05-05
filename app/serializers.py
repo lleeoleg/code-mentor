@@ -1,7 +1,18 @@
 from django.contrib.auth.models import User
 from rest_framework import serializers
 
-from .models import Course, NewsItem, Module, Lesson, Enrollment, Comment
+from .models import (
+    Course,
+    NewsItem,
+    Module,
+    Lesson,
+    Enrollment,
+    Comment,
+    CourseExam,
+    ExamQuestion,
+    ExamChoice,
+    ExamAttempt,
+)
 
 
 class UserMeSerializer(serializers.ModelSerializer):
@@ -87,3 +98,78 @@ class CommentCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Comment
         fields = ('text',)
+
+
+class ExamChoicePublicSerializer(serializers.ModelSerializer):
+    text = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ExamChoice
+        fields = ('id', 'text')
+
+    def get_text(self, obj):
+        req = self.context.get('request')
+        lang = ''
+        if req is not None:
+            lang = (req.query_params.get('lang') or '').strip().lower()
+        if lang == 'en':
+            return obj.text_en or obj.text
+        return obj.text or obj.text_en
+
+
+class ExamQuestionPublicSerializer(serializers.ModelSerializer):
+    text = serializers.SerializerMethodField()
+    choices = ExamChoicePublicSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = ExamQuestion
+        fields = ('id', 'text', 'order', 'choices')
+
+    def get_text(self, obj):
+        req = self.context.get('request')
+        lang = ''
+        if req is not None:
+            lang = (req.query_params.get('lang') or '').strip().lower()
+        if lang == 'en':
+            return obj.text_en or obj.text
+        return obj.text or obj.text_en
+
+
+class CourseExamInfoSerializer(serializers.ModelSerializer):
+    course_id = serializers.IntegerField(source='course.id', read_only=True)
+    course_title = serializers.CharField(source='course.title', read_only=True)
+
+    class Meta:
+        model = CourseExam
+        fields = ('id', 'course_id', 'course_title', 'is_active', 'pass_percent', 'questions_count')
+
+
+class ExamStartSerializer(serializers.ModelSerializer):
+    questions = ExamQuestionPublicSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = ExamAttempt
+        fields = ('id', 'status', 'started_at', 'questions')
+
+
+class ExamSubmitSerializer(serializers.Serializer):
+    # один правильный ответ; answers: [{question_id, choice_id}]
+    answers = serializers.ListField(
+        child=serializers.DictField(),
+        allow_empty=False,
+    )
+
+    def validate_answers(self, value):
+        cleaned = []
+        for item in value:
+            qid = item.get('question_id')
+            cid = item.get('choice_id')
+            if qid is None or cid is None:
+                raise serializers.ValidationError('Каждый ответ должен содержать question_id и choice_id.')
+            try:
+                qid = int(qid)
+                cid = int(cid)
+            except (TypeError, ValueError):
+                raise serializers.ValidationError('question_id и choice_id должны быть числами.')
+            cleaned.append({'question_id': qid, 'choice_id': cid})
+        return cleaned
