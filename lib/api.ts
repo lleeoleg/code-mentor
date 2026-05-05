@@ -8,6 +8,7 @@ const STORAGE_REFRESH = 'refresh';
 const api: AxiosInstance = axios.create({
   baseURL: API_BASE,
   headers: { 'Content-Type': 'application/json' },
+  timeout: 15000,
 });
 
 api.interceptors.request.use(async (config) => {
@@ -55,10 +56,55 @@ export const courses = {
   list: (params?: { price_type?: string }) =>
     api.get('/courses/', { params: params || {} }).then((r) => r.data),
   get: (id: string) => api.get(`/courses/${id}/`).then((r) => r.data),
+  curriculum: (id: number | string) => api.get(`/courses/${id}/curriculum/`).then((r) => r.data),
+};
+
+export const lessons = {
+  get: (id: number | string) => api.get(`/lessons/${id}/`).then((r) => r.data),
+};
+
+export const comments = {
+  list: (lessonId: number | string) => api.get(`/lessons/${lessonId}/comments/`).then((r) => r.data),
+  create: (lessonId: number | string, text: string) =>
+    api.post(`/lessons/${lessonId}/comments/create/`, { text }).then((r) => r.data),
+};
+
+export const exams = {
+  info: (courseId: number | string) => api.get(`/courses/${courseId}/exam/`).then((r) => r.data),
+  start: (courseId: number | string) => api.post(`/courses/${courseId}/exam/start/`).then((r) => r.data),
+  submit: (attemptId: number | string, payload: { answers: { question_id: number; choice_id: number }[] }) =>
+    api.post(`/exam-attempts/${attemptId}/submit/`, payload).then((r) => r.data),
+  certificatePdf: (courseId: number | string) =>
+    api.get(`/courses/${courseId}/certificate/pdf/`, { responseType: 'arraybuffer' as any }).then((r) => r.data),
 };
 
 export const news = {
   list: () => api.get('/news/').then((r) => r.data),
+};
+
+export type FavoritesResponse = {
+  course_ids: number[];
+  courses: {
+    id: number;
+    title: string;
+    description?: string;
+    level?: string;
+    level_display?: string;
+    price?: string | number | null;
+  }[];
+};
+
+export const favorites = {
+  list: () => api.get<FavoritesResponse>('/favorites/').then((r) => r.data),
+  add: (courseId: number) => api.post('/favorites/', { course_id: courseId }).then((r) => r.data),
+  remove: (courseId: number) => api.delete(`/favorites/${courseId}/`).then((r) => r.data),
+};
+
+export const lessonProgress = {
+  get: () => api.get<{ by_course: Record<string, number[]> }>('/lesson-progress/').then((r) => r.data.by_course || {}),
+  complete: (lessonId: number) => api.post('/lesson-progress/', { lesson_id: lessonId }).then((r) => r.data),
+  sync: (payload: { by_course?: Record<string, number[]>; lesson_ids?: number[] }) =>
+    api.post('/lesson-progress/sync/', payload).then((r) => r.data),
 };
 
 export default api;

@@ -18,6 +18,7 @@ import {
   LEVEL_FILTER_OPTIONS,
   PRICE_FILTER_OPTIONS,
 } from '@/utils/courseHelpers';
+import { getCourseLogoSource } from '@/utils/courseLogos';
 
 type Course = {
   id: number;
@@ -27,10 +28,6 @@ type Course = {
   level?: string;
   price?: number | string;
 };
-
-function isPowerBICourse(course: Course): boolean {
-  return !!(course.title && String(course.title).toLowerCase().includes('power bi'));
-}
 
 function filterBySearch(list: Course[], q: string): Course[] {
   if (!q.trim()) return list;
@@ -74,18 +71,20 @@ export default function CoursesScreen() {
       onPress={() => router.push(`/course/${item.id}`)}
       activeOpacity={0.8}
     >
-      {isPowerBICourse(item) ? (
-        <View style={styles.cardTop}>
-          <Image source={require('@/assets/images/powerbi-logo.png')} style={styles.cardLogo} contentFit="contain" />
-        </View>
-      ) : null}
+      <View style={styles.cardTop}>
+        {(() => {
+          const src = getCourseLogoSource(item);
+          if (!src) return null;
+          return <Image source={src} style={styles.cardLogo} contentFit="contain" />;
+        })()}
+      </View>
       <View style={styles.cardBody}>
         <Text style={styles.cardMeta}>{levelLabel(item.level_display ?? item.level)}</Text>
         <Text style={styles.cardTitle} numberOfLines={2}>{item.title}</Text>
         <Text style={styles.cardDesc} numberOfLines={2}>
           {item.description ? item.description.slice(0, 100) + (item.description.length > 100 ? '…' : '') : 'Без описания'}
         </Text>
-        <Text style={styles.cardPrice}>{formatCoursePrice(item.price)}</Text>
+        <Text style={styles.cardPrice}>{formatCoursePrice(item.price, item)}</Text>
       </View>
     </TouchableOpacity>
   );
@@ -95,8 +94,11 @@ export default function CoursesScreen() {
       <TextInput
         style={styles.searchInput}
         placeholder="Поиск по курсам..."
+        placeholderTextColor="#4b5563"
         value={searchQ}
         onChangeText={setSearchQ}
+        selectionColor="#2563eb"
+        underlineColorAndroid="transparent"
       />
 
       <View style={styles.filterRow}>
@@ -145,13 +147,16 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   searchInput: {
     margin: 16,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    borderRadius: 8,
+    marginBottom: 12,
+    borderWidth: 1.5,
+    borderColor: '#9ca3af',
+    borderRadius: 10,
     paddingVertical: 14,
-    paddingHorizontal: 12,
-    fontSize: 16,
-    lineHeight: 20,
+    paddingHorizontal: 14,
+    fontSize: 17,
+    lineHeight: 22,
+    color: '#111827',
+    backgroundColor: '#f9fafb',
   },
   filterRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', marginHorizontal: 16, marginBottom: 12 },
   filterLabel: { fontSize: 14, marginRight: 8, marginBottom: 8 },
@@ -178,19 +183,19 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#e5e7eb',
     marginBottom: 16,
-    aspectRatio: 1,
+    aspectRatio: 1.5,
   },
   cardTop: {
-    height: 88,
-    backgroundColor: '#ffc107',
+    height: 56,
+    backgroundColor: '#f3f4f6',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 12,
+    padding: 8,
   },
-  cardLogo: { width: 56, height: 56 },
-  cardBody: { padding: 12, paddingBottom: 16 },
+  cardLogo: { width: 44, height: 44 },
+  cardBody: { padding: 10, paddingBottom: 12 },
   cardMeta: { fontSize: 12, color: '#6b7280', marginBottom: 4 },
   cardTitle: { fontSize: 16, fontWeight: '600', marginBottom: 4 },
-  cardDesc: { fontSize: 14, color: '#6b7280', marginBottom: 8 },
+  cardDesc: { fontSize: 13, color: '#6b7280', marginBottom: 6 },
   cardPrice: { fontSize: 14, fontWeight: '600' },
 });

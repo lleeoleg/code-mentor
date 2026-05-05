@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { useRouter, Link } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
+import { API_BASE } from '@/lib/config';
 
 export default function LoginScreen() {
   const [username, setUsername] = useState('');
@@ -27,14 +28,28 @@ export default function LoginScreen() {
       await login(username.trim(), password);
       router.replace('/(tabs)');
     } catch (err: unknown) {
-      const ax = err as { code?: string; message?: string; response?: { data?: { detail?: string | string[] } } };
-      if (ax.code === 'ERR_NETWORK' || ax.message?.includes('Network')) {
-        setError('Нет связи с сервером. Проверьте интернет и что в lib/config.ts указан IP вашего ПК (где запущен backend).');
+      const ax = err as {
+        code?: string;
+        message?: string;
+        response?: { status?: number; data?: any };
+      };
+      if (ax.code === 'ECONNABORTED') {
+        setError(
+          `Таймаут запроса (15с).\nAPI: ${API_BASE}\n\nПроверьте:\n- backend запущен: python manage.py runserver 0.0.0.0:8000\n- телефон/ПК в одной Wi‑Fi\n- IP ПК в lib/config.ts или .env\n- firewall Windows не блокирует порт 8000`
+        );
         return;
       }
-      const detail = ax.response?.data?.detail;
-      const msg = Array.isArray(detail) ? detail.join(' ') : detail ?? ax.response?.data ?? 'Ошибка входа';
-      setError(typeof msg === 'object' ? JSON.stringify(msg) : String(msg));
+      if (ax.code === 'ERR_NETWORK' || ax.message?.includes('Network')) {
+        setError(
+          `Нет связи с сервером.\nAPI: ${API_BASE}\n\nПроверьте:\n- backend запущен: python manage.py runserver 0.0.0.0:8000\n- телефон/ПК в одной Wi‑Fi\n- IP ПК в lib/config.ts или .env`
+        );
+        return;
+      }
+      const status = ax.response?.status;
+      const data = ax.response?.data;
+      const detail = data?.detail;
+      const msg = Array.isArray(detail) ? detail.join(' ') : detail ?? data ?? 'Ошибка входа';
+      setError(`API: ${API_BASE}\nHTTP: ${status ?? '—'}\n\n${typeof msg === 'object' ? JSON.stringify(msg) : String(msg)}`);
     } finally {
       setLoading(false);
     }

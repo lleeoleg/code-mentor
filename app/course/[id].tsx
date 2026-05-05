@@ -1,8 +1,12 @@
 import { useState, useEffect } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { courses } from '@/lib/api';
 import { levelLabel, formatCoursePrice } from '@/utils/courseHelpers';
+import { useFavorites } from '@/contexts/FavoritesContext';
+import { useMyLearning } from '@/contexts/MyLearningContext';
 
 function formatDate(s: string | undefined) {
   if (!s) return '—';
@@ -14,8 +18,11 @@ function formatDate(s: string | undefined) {
 }
 
 export default function CourseDetailScreen() {
+  const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const { isFavorite, toggleFavorite } = useFavorites();
+  const { addToLearning, isInLearning } = useMyLearning();
   const [course, setCourse] = useState<{
     id: number;
     title: string;
@@ -40,11 +47,40 @@ export default function CourseDetailScreen() {
   if (loading) return <ActivityIndicator style={styles.loader} />;
   if (error || !course) return <Text style={styles.error}>{error || 'Курс не найден'}</Text>;
 
+  const fav = isFavorite(course.id);
+  const handleToggleFav = () =>
+    toggleFavorite({
+      id: course.id,
+      title: course.title,
+      price: course.price,
+      level_display: course.level_display,
+      level: course.level,
+    });
+
+  const handleTryFree = () => {
+    // Начать/продолжить обучение — ведём на экран уроков.
+    if (!isInLearning(course.id)) {
+      addToLearning({
+        id: course.id,
+        title: course.title,
+        price: course.price,
+        level_display: course.level_display,
+        level: course.level,
+      });
+    }
+    router.push(`/course/${course.id}/learn`);
+  };
+
   return (
-    <ScrollView style={styles.container}>
-      <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-        <Text style={styles.backBtnText}>← К списку курсов</Text>
-      </TouchableOpacity>
+    <ScrollView style={styles.container} contentContainerStyle={{ paddingTop: insets.top }}>
+      <View style={styles.headerRow}>
+        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+          <Text style={styles.backBtnText}>← К списку курсов</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.favBtn} onPress={handleToggleFav} activeOpacity={0.7}>
+          <Ionicons name={fav ? 'heart' : 'heart-outline'} size={26} color={fav ? '#dc2626' : '#6b7280'} />
+        </TouchableOpacity>
+      </View>
       <View style={styles.body}>
         <Text style={styles.badge}>{levelLabel(course.level_display ?? course.level)}</Text>
         <Text style={styles.title}>{course.title}</Text>
@@ -53,12 +89,14 @@ export default function CourseDetailScreen() {
         </Text>
 
         <View style={styles.actions}>
-          <Text style={styles.priceBlock}>{formatCoursePrice(course.price)}</Text>
+          <Text style={styles.priceBlock}>{formatCoursePrice(course.price, course)}</Text>
           <TouchableOpacity style={styles.btnPrimary} activeOpacity={0.8}>
             <Text style={styles.btnPrimaryText}>Купить</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.btnOutline} activeOpacity={0.8}>
-            <Text style={styles.btnOutlineText}>Попробовать бесплатно</Text>
+          <TouchableOpacity style={styles.btnOutline} onPress={handleTryFree} activeOpacity={0.8}>
+            <Text style={styles.btnOutlineText}>
+              {isInLearning(course.id) ? 'Продолжить обучение' : 'Начать обучение'}
+            </Text>
           </TouchableOpacity>
         </View>
 
@@ -72,8 +110,15 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   loader: { flex: 1, marginTop: 48 },
   error: { color: '#dc2626', padding: 24 },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingRight: 8,
+  },
   backBtn: { padding: 16 },
   backBtnText: { color: '#3f8cff', fontSize: 16 },
+  favBtn: { padding: 12 },
   body: { padding: 20 },
   badge: {
     alignSelf: 'flex-start',

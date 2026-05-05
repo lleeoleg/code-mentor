@@ -20,7 +20,6 @@ export const LEVEL_FILTER_OPTIONS = [
   { value: 'beginner', label: 'Начальный' },
   { value: 'intermediate', label: 'Средний' },
   { value: 'advanced', label: 'Продвинутый' },
-  { value: 'all', label: 'Любой' },
 ];
 
 export function filterCoursesByLevel<T extends { level_display?: string; level?: string }>(
@@ -31,11 +30,16 @@ export function filterCoursesByLevel<T extends { level_display?: string; level?:
   return courses.filter((c) => getLevelKey(c.level_display ?? c.level) === levelFilter);
 }
 
-export function formatCoursePrice(price: number | string | null | undefined): string {
+/** Отображаемая цена: нет цены/0 → «Бесплатно», иначе «15 590 ₸» (как на сайте). */
+export function formatCoursePrice(
+  price: number | string | null | undefined,
+  _course?: { title?: string } | null
+): string {
   if (price == null || price === '' || Number(price) === 0) return 'Бесплатно';
   const n = Number(price);
   if (Number.isNaN(n)) return 'Бесплатно';
-  return new Intl.NumberFormat('ru-RU', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(n) + ' ₽';
+  const formatted = new Intl.NumberFormat('ru-RU', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(n);
+  return formatted + ' ₸';
 }
 
 export const PRICE_FILTER_OPTIONS = [

@@ -7,6 +7,7 @@ import {
   ScrollView,
   ActivityIndicator,
   Linking,
+  Dimensions,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
@@ -20,6 +21,9 @@ import {
   PROGRAM_TABS,
 } from '@/utils/courseHelpers';
 import { Image } from 'expo-image';
+import { getCourseLogoSource } from '@/utils/courseLogos';
+
+const WEBINAR_URL = 'https://welcome.stepik.org/go_career';
 
 type Course = {
   id: number;
@@ -29,10 +33,6 @@ type Course = {
   level?: string;
   price?: number | string;
 };
-
-function isPowerBICourse(course: Course): boolean {
-  return !!(course.title && String(course.title).toLowerCase().includes('power bi'));
-}
 
 export default function HomeScreen() {
   const { user } = useAuth();
@@ -59,6 +59,9 @@ export default function HomeScreen() {
 
   const filteredByLevel = filterCoursesByLevel(courseList, levelFilter);
   const showCourses = user && !loading;
+  const logoSize = 34;
+  const screenW = Dimensions.get('window').width;
+  const cardW = Math.floor((screenW - 16 * 2 - 12) / 2);
 
   const handleSearch = () => {
     if (user) router.push('/(tabs)/courses');
@@ -74,19 +77,15 @@ export default function HomeScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Hero с баннером */}
-      <View style={styles.heroWrap}>
-        <TouchableOpacity
-          activeOpacity={0.9}
-          onPress={() => Linking.openURL('https://welcome.stepik.org/go_career')}
-        >
-          <Image
-            source={require('@/assets/images/webinar-banner.png')}
-            style={styles.heroImage}
-            contentFit="contain"
-          />
-        </TouchableOpacity>
-      </View>
+      {/* Карточка вебинара на всю ширину (как на сайте) */}
+      <TouchableOpacity
+        style={styles.webinarCard}
+        activeOpacity={0.9}
+        onPress={() => Linking.openURL(WEBINAR_URL)}
+      >
+        <Text style={styles.webinarLabel}>ВЕБИНАР</Text>
+        <Text style={styles.webinarTitle}>Go-разработка в 2026: путь middle-разработчика</Text>
+      </TouchableOpacity>
 
       {/* Текст под картинкой */}
       <View style={styles.heroText}>
@@ -138,27 +137,34 @@ export default function HomeScreen() {
           ) : filteredByLevel.length === 0 ? (
             <Text style={styles.muted}>Пока нет курсов.</Text>
           ) : (
-            <View style={styles.grid}>
-              {filteredByLevel.slice(0, 6).map((course) => (
-                <TouchableOpacity
-                  key={course.id}
-                  style={styles.cardSquare}
-                  onPress={() => router.push(`/course/${course.id}`)}
-                  activeOpacity={0.8}
-                >
-                  {isPowerBICourse(course) ? (
+            <>
+              <View style={styles.grid}>
+                {filteredByLevel.map((course) => (
+                  <TouchableOpacity
+                    key={course.id}
+                    style={[styles.cardSquare, { width: cardW }]}
+                    onPress={() => router.push(`/course/${course.id}`)}
+                    activeOpacity={0.8}
+                  >
                     <View style={styles.cardTop}>
-                      <Image source={require('@/assets/images/powerbi-logo.png')} style={styles.cardLogo} contentFit="contain" />
+                      {(() => {
+                        const src = getCourseLogoSource(course);
+                        if (!src) return null;
+                        return <Image source={src} style={{ width: logoSize, height: logoSize }} contentFit="contain" />;
+                      })()}
                     </View>
-                  ) : null}
-                  <View style={styles.cardBody}>
-                    <Text style={styles.cardTitle} numberOfLines={2}>{course.title}</Text>
-                    <Text style={styles.cardMeta}>{levelLabel(course.level_display ?? course.level)}</Text>
-                    <Text style={styles.cardPrice}>{formatCoursePrice(course.price)}</Text>
-                  </View>
-                </TouchableOpacity>
-              ))}
-            </View>
+                    <View style={styles.cardBody}>
+                      <Text style={styles.cardTitle} numberOfLines={2}>{course.title}</Text>
+                      <Text style={styles.cardMeta}>{levelLabel(course.level_display ?? course.level)}</Text>
+                      <Text style={styles.cardPrice}>{formatCoursePrice(course.price, course)}</Text>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              <TouchableOpacity style={styles.moreCoursesBtn} onPress={() => router.push('/(tabs)/courses')} activeOpacity={0.8}>
+                <Text style={styles.moreCoursesText}>Все курсы →</Text>
+              </TouchableOpacity>
+            </>
           )}
 
           {/* Программы курсов: вкладки + фильтр по уровню */}
@@ -193,22 +199,24 @@ export default function HomeScreen() {
             <Text style={styles.muted}>Пока нет программ.</Text>
           ) : (
             <View style={styles.grid}>
-              {filteredByLevel.slice(0, 6).map((course) => (
+              {filteredByLevel.map((course) => (
                 <TouchableOpacity
                   key={`program-${course.id}`}
-                  style={styles.cardSquare}
+                  style={[styles.cardSquare, { width: cardW }]}
                   onPress={() => router.push(`/course/${course.id}`)}
                   activeOpacity={0.8}
                 >
-                  {isPowerBICourse(course) ? (
-                    <View style={styles.cardTop}>
-                      <Image source={require('@/assets/images/powerbi-logo.png')} style={styles.cardLogo} contentFit="contain" />
-                    </View>
-                  ) : null}
+                  <View style={styles.cardTop}>
+                    {(() => {
+                      const src = getCourseLogoSource(course);
+                      if (!src) return null;
+                      return <Image source={src} style={{ width: logoSize, height: logoSize }} contentFit="contain" />;
+                    })()}
+                  </View>
                   <View style={styles.cardBody}>
                     <Text style={styles.cardTitle} numberOfLines={2}>{course.title}</Text>
                     <Text style={styles.cardMeta}>{levelLabel(course.level_display ?? course.level)}</Text>
-                    <Text style={styles.cardPrice}>{formatCoursePrice(course.price)}</Text>
+                    <Text style={styles.cardPrice}>{formatCoursePrice(course.price, course)}</Text>
                   </View>
                 </TouchableOpacity>
               ))}
@@ -226,39 +234,63 @@ export default function HomeScreen() {
   );
 }
 
+const SPACING = 20;
+
+const PAGE_BG = '#f3f4f6';
+
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  content: { paddingBottom: 32 },
+  container: { flex: 1, backgroundColor: PAGE_BG },
+  content: { paddingBottom: 32, paddingTop: SPACING },
   searchStrip: {
     paddingHorizontal: 16,
-    paddingTop: 4,
-    paddingBottom: 8,
-    backgroundColor: '#fff',
+    paddingTop: 0,
+    paddingBottom: SPACING,
+    backgroundColor: PAGE_BG,
   },
   searchBtn: {
-    padding: 12,
-    backgroundColor: '#f3f4f6',
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+    backgroundColor: '#f9fafb',
     borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderWidth: 1.5,
+    borderColor: '#9ca3af',
   },
   searchPlaceholder: {
+    color: '#4b5563',
+    fontSize: 17,
+    lineHeight: 22,
+  },
+  webinarCard: {
+    marginHorizontal: 16,
+    marginBottom: SPACING,
+    paddingLeft: 16,
+    paddingRight: 14,
+    paddingVertical: 12,
+    backgroundColor: '#fafafa',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    borderLeftWidth: 4,
+    borderLeftColor: '#3b82f6',
+  },
+  webinarLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.06,
     color: '#6b7280',
-    fontSize: 16,
+    marginBottom: 4,
   },
-  heroWrap: {
-    marginBottom: 0,
-    paddingHorizontal: 16,
-  },
-  heroImage: {
-    width: '100%',
-    height: 160,
+  webinarTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#111',
+    lineHeight: 20,
   },
   heroText: {
     marginHorizontal: 16,
-    paddingHorizontal: 24,
-    paddingTop: 8,
-    paddingBottom: 20,
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    paddingBottom: 14,
     alignItems: 'center',
     backgroundColor: '#fff',
     borderRadius: 12,
@@ -266,23 +298,23 @@ const styles = StyleSheet.create({
     borderColor: '#e5e7eb',
   },
   heroTitle: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: '800',
     color: '#0d0d0d',
-    marginBottom: 10,
+    marginBottom: 8,
     textAlign: 'center',
   },
   heroDesc: {
-    fontSize: 15,
+    fontSize: 14,
     color: '#4b5563',
-    marginBottom: 18,
-    lineHeight: 22,
+    marginBottom: 12,
+    lineHeight: 20,
     textAlign: 'center',
   },
   primaryBtn: {
     backgroundColor: '#0d0d0d',
-    paddingVertical: 14,
-    paddingHorizontal: 24,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
     borderRadius: 10,
   },
   primaryBtnText: {
@@ -294,11 +326,11 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '700',
     marginHorizontal: 16,
-    marginTop: 24,
+    marginTop: SPACING + 4,
     marginBottom: 12,
   },
   sectionTitlePrograms: {
-    marginTop: 32,
+    marginTop: SPACING + 12,
   },
   sectionSubtitle: {
     fontSize: 14,
@@ -332,14 +364,14 @@ const styles = StyleSheet.create({
   chipTextActive: { color: '#fff' },
   loader: { marginVertical: 24 },
   muted: { color: '#6b7280', padding: 16 },
-  grid: { paddingHorizontal: 16, gap: 16 },
+  grid: { paddingHorizontal: 16, gap: 12, flexDirection: 'row', flexWrap: 'wrap' },
   card: {
     backgroundColor: '#fff',
     borderRadius: 12,
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: '#e5e7eb',
-    marginBottom: 16,
+    marginBottom: 12,
   },
   cardSquare: {
     backgroundColor: '#fff',
@@ -347,22 +379,29 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: '#e5e7eb',
-    marginBottom: 16,
-    aspectRatio: 1,
-    maxWidth: 180,
+    marginBottom: 12,
+    aspectRatio: 1.15,
   },
   cardTop: {
-    height: 88,
-    backgroundColor: '#ffc107',
+    height: 44,
+    backgroundColor: '#f3f4f6',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 12,
+    padding: 6,
   },
-  cardLogo: { width: 56, height: 56 },
-  cardBody: { padding: 12, paddingBottom: 16 },
-  cardTitle: { fontSize: 16, fontWeight: '600', marginBottom: 4, color: '#111' },
-  cardMeta: { fontSize: 12, color: '#6b7280', marginBottom: 4 },
-  cardPrice: { fontSize: 14, fontWeight: '600', color: '#0d0d0d' },
+  cardBody: { padding: 10, paddingBottom: 12 },
+  cardTitle: { fontSize: 13, fontWeight: '600', marginBottom: 10, color: '#111' },
+  cardMeta: { fontSize: 10, color: '#6b7280', marginBottom: 10 },
+  cardPrice: { fontSize: 12, fontWeight: '600', color: '#0d0d0d' },
+  moreCoursesBtn: {
+    alignSelf: 'flex-end',
+    marginHorizontal: 16,
+    marginTop: 4,
+    marginBottom: 4,
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+  },
+  moreCoursesText: { color: '#3f8cff', fontSize: 15, fontWeight: '600' },
   linkBtn: { alignSelf: 'center', marginTop: 24 },
   linkBtnText: { color: '#3f8cff', fontSize: 16 },
 });
