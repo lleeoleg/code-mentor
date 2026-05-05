@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useLanguage } from '../contexts/LanguageContext';
 import { courses as coursesApi } from '../api';
 import { getProfile } from '../utils/profileStore';
 import Footer from './Footer';
@@ -92,6 +93,7 @@ export default function Layout() {
   const avatarInitials = getInitials(profile, user?.username);
   const location = useLocation();
   const isCourseLearn = /^\/courses\/\d+\/learn\/?$/.test(location.pathname);
+  const { locale, setLocale, t } = useLanguage();
 
   return (
     <div className={`layout ${isCourseLearn ? 'layout--course-learn' : ''}`}>
@@ -109,7 +111,7 @@ export default function Layout() {
                 onClick={() => setCatalogOpen((v) => !v)}
                 aria-expanded={catalogOpen}
               >
-                Каталог
+                {t('header.catalog')}
                 <span className="header-catalog-chevron">▼</span>
               </button>
               {catalogOpen && (
@@ -136,22 +138,31 @@ export default function Layout() {
 
           {user && (
             <Link to="/my-learning" className="header-link-btn">
-              Моё обучение
+              {t('header.myLearning')}
             </Link>
           )}
         </div>
 
         <div className="header-right">
+          <button
+            type="button"
+            className="header-lang-btn"
+            onClick={() => setLocale((l) => (l === 'ru' ? 'en' : 'ru'))}
+            aria-label={locale === 'ru' ? 'Switch to English' : 'Переключить на русский'}
+            title={locale === 'ru' ? 'English' : 'Русский'}
+          >
+            {locale === 'ru' ? 'EN' : 'RU'}
+          </button>
           {user && (
             <form className="header-search" onSubmit={handleSearch}>
               <input
                 type="search"
-                placeholder="Поиск по курсам..."
+                placeholder={t('header.searchPlaceholder')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="header-search-input"
               />
-              <button type="submit" className="header-search-btn" aria-label="Искать">
+              <button type="submit" className="header-search-btn" aria-label={t('home.search')}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
               </button>
             </form>
@@ -175,24 +186,24 @@ export default function Layout() {
               {avatarOpen && (
                 <div className="header-dropdown header-avatar-dropdown">
                   <Link to="/profile" onClick={closeAvatar} className="header-dropdown-item">
-                    Профиль
+                    {t('header.profile')}
                   </Link>
                   <Link to="/settings" onClick={closeAvatar} className="header-dropdown-item">
-                    Настройки
+                    {t('header.settings')}
                   </Link>
                   <button type="button" onClick={() => { closeAvatar(); setWhatsNewOpen(true); }} className="header-dropdown-item header-dropdown-item-btn">
-                    Что нового
+                    {t('header.whatsNew')}
                   </button>
                   <button type="button" onClick={handleLogout} className="header-dropdown-item header-dropdown-item-logout">
-                    Выйти
+                    {t('header.logout')}
                   </button>
                 </div>
               )}
             </div>
           ) : (
             <div className="header-auth">
-              <Link to="/login" className="header-btn-ghost">Вход</Link>
-              <Link to="/register" className="header-btn-primary">Регистрация</Link>
+              <Link to="/login" className="header-btn-ghost">{t('header.login')}</Link>
+              <Link to="/register" className="header-btn-primary">{t('header.register')}</Link>
             </div>
           )}
         </div>

@@ -26,7 +26,6 @@ export const LEVEL_FILTER_OPTIONS = [
   { value: 'beginner', label: 'Начальный' },
   { value: 'intermediate', label: 'Средний' },
   { value: 'advanced', label: 'Продвинутый' },
-  { value: 'all', label: 'Любой' },
 ];
 
 export function filterCoursesByLevel(courses, levelFilter) {
@@ -34,12 +33,18 @@ export function filterCoursesByLevel(courses, levelFilter) {
   return courses.filter((c) => getLevelKey(c.level_display ?? c.level) === levelFilter);
 }
 
-/** Отображаемая цена: нет цены/0 → «Бесплатно», иначе «1 999 ₽». */
-export function formatCoursePrice(price) {
+/** Проверка, что курс — Power BI (используем для логотипа/маркетинга). */
+export function isPowerBICourse(course) {
+  return course?.title && String(course.title).toLowerCase().includes('power bi');
+}
+
+/** Отображаемая цена: нет цены/0 → «Бесплатно», иначе «15 590 ₸». */
+export function formatCoursePrice(price, course = null) {
   if (price == null || price === '' || Number(price) === 0) return 'Бесплатно';
   const n = Number(price);
   if (Number.isNaN(n)) return 'Бесплатно';
-  return new Intl.NumberFormat('ru-RU', { style: 'decimal', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(n) + ' ₽';
+  const formatted = new Intl.NumberFormat('ru-RU', { style: 'decimal', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(n);
+  return formatted + ' ₸';
 }
 
 export const PRICE_FILTER_OPTIONS = [

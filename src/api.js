@@ -57,12 +57,32 @@ export const courses = {
   curriculum: (courseId) => api.get(`/courses/${courseId}/curriculum/`).then((r) => r.data),
 };
 
+export const exams = {
+  info: (courseId, opts) => api.get(`/courses/${courseId}/exam/`, { params: opts || {} }).then((r) => r.data),
+  start: (courseId, opts) => api.post(`/courses/${courseId}/exam/start/`, null, { params: opts || {} }).then((r) => r.data),
+  submit: (attemptId, payload) => api.post(`/exam-attempts/${attemptId}/submit/`, payload).then((r) => r.data),
+  certificatePdf: (courseId) =>
+    api.get(`/courses/${courseId}/certificate/pdf/`, { responseType: 'blob' }).then((r) => r.data),
+};
+
 export const lessons = {
   get: (id) => api.get(`/lessons/${id}/`).then((r) => r.data),
 };
 
 export const enrollments = {
   list: () => api.get('/enrollments/').then((r) => r.data),
+};
+
+export const favorites = {
+  list: () => api.get('/favorites/').then((r) => r.data),
+  add: (courseId) => api.post('/favorites/', { course_id: courseId }).then((r) => r.data),
+  remove: (courseId) => api.delete(`/favorites/${courseId}/`).then((r) => r.data),
+};
+
+export const lessonProgress = {
+  get: () => api.get('/lesson-progress/').then((r) => r.data.by_course || {}),
+  complete: (lessonId) => api.post('/lesson-progress/', { lesson_id: lessonId }).then((r) => r.data),
+  sync: (payload) => api.post('/lesson-progress/sync/', payload).then((r) => r.data),
 };
 
 export const activity = {

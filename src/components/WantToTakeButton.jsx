@@ -1,6 +1,8 @@
 import { useFavorites } from '../contexts/FavoritesContext';
+import { useLanguage } from '../contexts/LanguageContext';
 
 export default function WantToTakeButton({ courseId, onCard, className = '' }) {
+  const { t } = useLanguage();
   const { isFavorite, toggleFavorite } = useFavorites();
   const active = isFavorite(courseId);
 
@@ -17,9 +19,9 @@ export default function WantToTakeButton({ courseId, onCard, className = '' }) {
       type="button"
       className={`course-want-btn ${active ? 'course-want-btn-active' : ''} ${className}`.trim()}
       onClick={handleClick}
-      aria-label={active ? 'Убрать из избранного' : 'Добавить в избранное'}
+      aria-label={active ? t('courseDetail.removeFromFavorites') : t('courseDetail.addToFavorites')}
     >
-      {active ? 'В избранном' : 'Хочу пройти'}
+      {active ? t('courseDetail.inFavorites') : t('courseDetail.addToFavorites')}
     </button>
   );
 }

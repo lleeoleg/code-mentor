@@ -1,8 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useParams, useSearchParams, Link } from 'react-router-dom';
-import { courses, lessons } from '../api';
+import { useLanguage } from '../contexts/LanguageContext';
+import { courses, lessons, enrollments } from '../api';
 import { formatCoursePrice } from '../utils/courseHelpers';
 import Comments from '../components/Comments';
+import CourseFinalExam from '../components/CourseFinalExam';
+import { getCompletedLessonIds, markLessonCompleted } from '../utils/progressStore';
 import './CourseLearn.css';
 
 function getAllLessons(modules) {
@@ -21,10 +24,13 @@ function getFirstLessonId(modules) {
 function getNextLessonId(modules, currentId) {
   const all = getAllLessons(modules);
   const idx = all.findIndex((l) => l.id === currentId);
-  return idx >= 0 && idx < all.length - 1 ? all[idx + 1].id : null;
+  if (idx >= 0 && idx < all.length - 1) return all[idx + 1].id;
+  if (idx === all.length - 1) return 'exam';
+  return null;
 }
 
 export default function CourseLearn() {
+  const { t } = useLanguage();
   const { id } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
   const lessonIdParam = searchParams.get('lesson');
@@ -33,22 +39,63 @@ export default function CourseLearn() {
   const [currentLesson, setCurrentLesson] = useState(null);
   const [lessonError, setLessonError] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [completedIds, setCompletedIds] = useState([]);
+  const [isEnrolled, setIsEnrolled] = useState(false);
+  const [enrollLoading, setEnrollLoading] = useState(false);
 
   useEffect(() => {
-    Promise.all([courses.get(id), courses.curriculum(id)])
-      .then(([c, curr]) => {
+    let cancelled = false;
+    setLoading(true);
+    Promise.all([courses.get(id), courses.curriculum(id), enrollments.list()])
+      .then(([c, curr, enr]) => {
+        if (cancelled) return;
         setCourse(c);
         setCurriculum(curr);
+        setCompletedIds(getCompletedLessonIds(id));
+        const courseIdNum = Number(id);
+        const enrolled = Array.isArray(enr) && enr.some((e) => Number(e.course) === courseIdNum);
+        setIsEnrolled(Boolean(enrolled));
       })
-      .catch(() => setCourse(null))
-      .finally(() => setLoading(false));
+      .catch(() => {
+        if (cancelled) return;
+        setCourse(null);
+        setCurriculum([]);
+        setIsEnrolled(false);
+      })
+      .finally(() => {
+        if (cancelled) return;
+        setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [id]);
 
+  useEffect(() => {
+    const onProgressSynced = () => setCompletedIds(getCompletedLessonIds(id));
+    window.addEventListener('lessonProgressSynced', onProgressSynced);
+    return () => window.removeEventListener('lessonProgressSynced', onProgressSynced);
+  }, [id]);
+
+  const handleEnrollAndStart = () => {
+    if (enrollLoading) return;
+    setEnrollLoading(true);
+    courses
+      .tryFree(id)
+      .then(() => setIsEnrolled(true))
+      .catch(() => {
+        // Не блокируем просмотр страницы; просто не удалось записаться.
+      })
+      .finally(() => setEnrollLoading(false));
+  };
+
   const allLessons = getAllLessons(curriculum);
-  const currentLessonId = lessonIdParam ? Number(lessonIdParam) : getFirstLessonId(curriculum);
+  const currentLessonId = lessonIdParam === 'exam'
+    ? 'exam'
+    : (lessonIdParam ? Number(lessonIdParam) : getFirstLessonId(curriculum));
 
   useEffect(() => {
-    if (!currentLessonId || !allLessons.length) {
+    if (!currentLessonId || !allLessons.length || currentLessonId === 'exam') {
       setCurrentLesson(null);
       setLessonError(null);
       return;
@@ -60,27 +107,33 @@ export default function CourseLearn() {
       .catch((err) => {
         const data = err.response?.data;
         setCurrentLesson(data?.locked ? { locked: true, detail: data.detail } : null);
-        setLessonError(data?.detail || 'Урок недоступен');
+        setLessonError(data?.detail || t('courseDetail.lessonUnavailable'));
       });
-  }, [currentLessonId, allLessons.length]);
+  }, [currentLessonId, allLessons.length, t]);
 
   const setLesson = (lesId) => {
-    setSearchParams(lesId ? { lesson: lesId } : {});
+    setSearchParams(lesId ? { lesson: String(lesId) } : {});
+  };
+
+  const completeCurrentLesson = () => {
+    if (typeof currentLessonId !== 'number') return;
+    markLessonCompleted(id, currentLessonId);
+    setCompletedIds(getCompletedLessonIds(id));
   };
 
   const nextLessonId = getNextLessonId(curriculum, currentLessonId);
 
-  if (loading) return <div className="course-learn loading">Загрузка курса...</div>;
-  if (!course) return <div className="page"><div className="form-error">Курс не найден.</div></div>;
+  if (loading) return <div className="course-learn loading">{t('courseLearn.loading')}</div>;
+  if (!course) return <div className="page"><div className="form-error">{t('courseDetail.notFound')}</div></div>;
 
   return (
     <div className="course-learn">
       <header className="course-learn-header">
         <div className="course-learn-header-inner">
-          <Link to={`/courses/${id}`} className="course-learn-back">← Курс</Link>
+          <Link to={`/courses/${id}`} className="course-learn-back">{t('courseDetail.backToCourse')}</Link>
           <h1 className="course-learn-title">{course.title}</h1>
           <Link to={`/courses/${id}`} className="course-learn-buy-btn">
-            Купить курс за {formatCoursePrice(course.price)}
+            {t('courseDetail.buyCourseFor')} {formatCoursePrice(course.price, course)}
           </Link>
         </div>
       </header>
@@ -101,11 +154,11 @@ export default function CourseLearn() {
                     <li key={les.id}>
                       <button
                         type="button"
-                        className={`course-learn-lesson-btn ${currentLessonId === les.id ? 'active' : ''}`}
+                        className={`course-learn-lesson-btn ${currentLessonId === les.id ? 'active' : ''} ${completedIds.includes(les.id) ? 'done' : ''}`}
                         onClick={() => setLesson(les.id)}
                       >
                         {!les.is_free && (
-                          <span className="course-learn-lock" title="Платный контент" aria-hidden>
+                          <span className="course-learn-lock" title={t('courseLearn.paidContent')} aria-hidden>
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                               <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
                               <path d="M7 11V7a5 5 0 0 1 10 0v4" />
@@ -119,17 +172,52 @@ export default function CourseLearn() {
                 </ul>
               </div>
             ))}
+
+            <div className="course-learn-module">
+              <div className="course-learn-module-title">
+                4. Тест
+              </div>
+              <ul className="course-learn-lessons">
+                <li>
+                  <button
+                    type="button"
+                    className={`course-learn-lesson-btn ${currentLessonId === 'exam' ? 'active' : ''}`}
+                    onClick={() => setLesson('exam')}
+                  >
+                    <span>4. Тестирование</span>
+                  </button>
+                </li>
+              </ul>
+            </div>
           </nav>
         </aside>
 
         <main className="course-learn-main">
+          {!isEnrolled && (
+            <div className="course-learn-locked" style={{ marginBottom: 16 }}>
+              <p>
+                {t('courseDetail.locked')}
+              </p>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={handleEnrollAndStart}
+                disabled={enrollLoading}
+              >
+                {enrollLoading ? t('courseDetail.adding') : (t('courseDetail.wantToTake') || 'Начать обучение')}
+              </button>
+            </div>
+          )}
+          {currentLessonId === 'exam' && (
+            <CourseFinalExam courseId={id} />
+          )}
           {lessonError && !currentLesson?.locked && (
             <p className="course-learn-error">{lessonError}</p>
           )}
           {currentLesson?.locked && (
             <div className="course-learn-locked">
-              <p>Этот урок доступен после записи на курс или покупки.</p>
-              <Link to={`/courses/${id}`} className="btn btn-primary">Перейти к курсу</Link>
+              <p>{t('courseDetail.locked')}</p>
+              <Link to={`/courses/${id}`} className="btn btn-primary">{t('courseDetail.goToCourse')}</Link>
             </div>
           )}
           {currentLesson && !currentLesson.locked && (
@@ -152,22 +240,38 @@ export default function CourseLearn() {
               </div>
               <div className="course-learn-footer">
                 {nextLessonId ? (
-                  <button
-                    type="button"
-                    className="course-learn-next-btn"
-                    onClick={() => setLesson(nextLessonId)}
-                  >
-                    Следующий шаг →
-                  </button>
+                  nextLessonId === 'exam' ? (
+                    <button
+                      type="button"
+                      className="course-learn-next-btn"
+                      onClick={() => {
+                        completeCurrentLesson();
+                        setLesson('exam');
+                      }}
+                    >
+                      Перейти к тесту
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      className="course-learn-next-btn"
+                      onClick={() => {
+                        completeCurrentLesson();
+                        setLesson(nextLessonId);
+                      }}
+                    >
+                      {t('courseDetail.nextStep')}
+                    </button>
+                  )
                 ) : (
-                  <Link to={`/courses/${id}`} className="course-learn-next-btn">К списку курсов</Link>
+                  <Link to={`/courses/${id}`} className="course-learn-next-btn">{t('courseDetail.toCourseList')}</Link>
                 )}
               </div>
-              <Comments lessonId={currentLessonId} />
+              <Comments lessonId={Number(currentLessonId)} />
             </>
           )}
-          {!currentLesson && !lessonError && allLessons.length > 0 && (
-            <p className="text-muted">Выберите урок в меню слева.</p>
+          {currentLessonId !== 'exam' && !currentLesson && !lessonError && allLessons.length > 0 && (
+            <p className="text-muted">{t('courseDetail.chooseLesson')}</p>
           )}
         </main>
       </div>

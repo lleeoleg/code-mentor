@@ -138,6 +138,11 @@
   font-weight: 500;
 }
 
+.course-learn-lesson-btn.done {
+  border-left: 4px solid #16a34a;
+  background: rgba(22, 163, 74, 0.08);
+}
+
 .course-learn-lock {
   flex-shrink: 0;
   display: inline-flex;
@@ -218,6 +223,144 @@
 
 .course-learn-next-btn:hover {
   background: #0284c7;
+  color: #fff;
+}
+
+/* Final exam */
+.exam {
+  max-width: 900px;
+  width: 100%;
+}
+
+.exam.loading,
+.exam.empty {
+  padding: 16px;
+  color: var(--text-muted);
+}
+
+.exam-head {
+  margin-bottom: 16px;
+}
+
+.exam-title {
+  margin: 0 0 6px;
+  font-size: 1.5rem;
+  font-weight: 800;
+}
+
+.exam-meta {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+}
+
+.exam-banner {
+  border-radius: 12px;
+  padding: 14px;
+  margin: 12px 0;
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.exam-banner.ok {
+  background: #ecfdf5;
+  border-color: #34d399;
+}
+
+.exam-banner.bad {
+  background: #fef2f2;
+  border-color: #f87171;
+}
+
+.exam-banner-title {
+  font-weight: 800;
+}
+
+.exam-banner-text {
+  color: #374151;
+}
+
+.exam-error {
+  margin: 12px 0;
+  color: #b91c1c;
+}
+
+.exam-start {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.exam-questions {
+  display: grid;
+  gap: 14px;
+}
+
+.exam-q {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.exam-q.correct {
+  border-color: #34d399;
+  background: #ecfdf5;
+}
+
+.exam-q.wrong {
+  border-color: #f87171;
+  background: #fef2f2;
+}
+
+.exam-q-title {
+  font-weight: 800;
+  margin-bottom: 10px;
+}
+
+.exam-choices {
+  display: grid;
+  gap: 8px;
+}
+
+.exam-choice {
+  width: 100%;
+  text-align: left;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.exam-choice:hover {
+  background: var(--bg-alt);
+}
+
+.exam-choice.active {
+  background: #0d0d0d;
+  border-color: #0d0d0d;
+  color: #fff;
+}
+
+.exam-choice.correct {
+  background: #16a34a;
+  border-color: #16a34a;
+  color: #fff;
+}
+
+.exam-choice.wrong {
+  background: #dc2626;
+  border-color: #dc2626;
   color: #fff;
 }
 

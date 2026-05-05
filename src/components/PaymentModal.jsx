@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { auth, courses } from '../api';
+import { useLanguage } from '../contexts/LanguageContext';
 import { formatCoursePrice } from '../utils/courseHelpers';
 import './PaymentModal.css';
 
 export default function PaymentModal({ open, onClose, course }) {
+  const { t } = useLanguage();
   const [tab, setTab] = useState('self');
   const [email, setEmail] = useState('');
   const [showPromo, setShowPromo] = useState(false);
@@ -28,24 +30,24 @@ export default function PaymentModal({ open, onClose, course }) {
       .createCheckoutSession(course.id)
       .then((data) => {
         if (data?.url) window.location.href = data.url;
-        else setError('Не получена ссылка на оплату.');
+        else setError(t('payment.noPaymentUrl'));
       })
       .catch((err) => {
-        setError(err.response?.data?.detail || err.message || 'Ошибка при создании оплаты.');
+        setError(err.response?.data?.detail || err.message || t('payment.errorCreate'));
       })
       .finally(() => setLoading(false));
   };
 
-  const priceDisplay = course ? formatCoursePrice(course.price) : '';
+  const priceDisplay = course ? formatCoursePrice(course.price, course) : '';
 
   return (
     <div className="payment-modal-backdrop" onClick={onClose} role="dialog" aria-modal="true" aria-labelledby="payment-modal-title">
       <div className="payment-modal" onClick={(e) => e.stopPropagation()}>
         <div className="payment-modal-header">
           <h2 id="payment-modal-title" className="payment-modal-title">
-            Оплата доступа к курсу «{course?.title || ''}»
+            {t('payment.title')} «{course?.title || ''}»
           </h2>
-          <button type="button" className="payment-modal-close" onClick={onClose} aria-label="Закрыть">
+          <button type="button" className="payment-modal-close" onClick={onClose} aria-label={t('payment.close')}>
             ×
           </button>
         </div>
@@ -56,20 +58,20 @@ export default function PaymentModal({ open, onClose, course }) {
             className={`payment-modal-tab ${tab === 'self' ? 'active' : ''}`}
             onClick={() => setTab('self')}
           >
-            Себе
+            {t('payment.forSelf')}
           </button>
           <button
             type="button"
             className={`payment-modal-tab ${tab === 'gift' ? 'active' : ''}`}
             onClick={() => setTab('gift')}
           >
-            В подарок
+            {t('payment.asGift')}
           </button>
         </div>
 
         <div className="payment-modal-body">
           <label className="payment-modal-field">
-            <span className="payment-modal-label">Ваш e-mail</span>
+            <span className="payment-modal-label">{t('payment.yourEmail')}</span>
             <input
               type="email"
               className="payment-modal-input"
@@ -80,7 +82,7 @@ export default function PaymentModal({ open, onClose, course }) {
           </label>
 
           <div className="payment-modal-field">
-            <span className="payment-modal-label">Стоимость</span>
+            <span className="payment-modal-label">{t('payment.cost')}</span>
             <p className="payment-modal-price">{priceDisplay}</p>
           </div>
 
@@ -89,12 +91,12 @@ export default function PaymentModal({ open, onClose, course }) {
             className="payment-modal-promo-toggle"
             onClick={() => setShowPromo((v) => !v)}
           >
-            У меня есть промокод
+            {t('payment.havePromo')}
             <span className={`payment-modal-chevron ${showPromo ? 'open' : ''}`}>▼</span>
           </button>
           {showPromo && (
             <div className="payment-modal-promo">
-              <input type="text" className="payment-modal-input" placeholder="Введите промокод" />
+              <input type="text" className="payment-modal-input" placeholder={t('payment.promoPlaceholder')} />
             </div>
           )}
 
@@ -104,8 +106,8 @@ export default function PaymentModal({ open, onClose, course }) {
               checked={foreignCard}
               onChange={(e) => setForeignCard(e.target.checked)}
             />
-            <span>Хочу оплатить картой иностранного банка</span>
-            <span className="payment-modal-info" title="Оплата картой иностранного банка">ⓘ</span>
+            <span>{t('payment.foreignCard')}</span>
+            <span className="payment-modal-info" title={t('payment.foreignCard')}>ⓘ</span>
           </label>
 
           {error && <p className="payment-modal-error">{error}</p>}
@@ -116,19 +118,18 @@ export default function PaymentModal({ open, onClose, course }) {
             onClick={handlePay}
             disabled={loading}
           >
-            {loading ? 'Подготовка…' : 'Оплатить'}
+            {loading ? t('payment.preparing') : t('payment.pay')}
           </button>
 
           <div className="payment-modal-links">
-            <a href="#how-to-pay">Как оплатить курс?</a>
-            <a href="#installment">Как оплатить курс в рассрочку?</a>
-            <a href="#company">Оплатить от компании</a>
+            <a href="#how-to-pay">{t('payment.howToPay')}</a>
+            <a href="#installment">{t('payment.installment')}</a>
+            <a href="#company">{t('payment.companyPay')}</a>
           </div>
         </div>
 
         <p className="payment-modal-footer">
-          Оплачивая доступ к этому курсу, вы соглашаетесь с условиями пользовательского соглашения.
-          Если у вас возникли проблемы с оплатой или не пришло письмо с подарком, напишите нам на help@codementor.example.org.
+          {t('payment.footer')}
         </p>
       </div>
     </div>

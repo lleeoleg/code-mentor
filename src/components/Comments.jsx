@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { comments } from '../api';
 import { useAuth } from '../contexts/AuthContext';
+import { useLanguage } from '../contexts/LanguageContext';
 import { getProfile } from '../utils/profileStore';
 import './Comments.css';
 
 export default function Comments({ lessonId }) {
+  const { t, locale } = useLanguage();
   const { user } = useAuth();
   const [commentsList, setCommentsList] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -49,7 +51,7 @@ export default function Comments({ lessonId }) {
       setCommentsList([created, ...commentsList]);
       setNewComment('');
     } catch (err) {
-      alert('Ошибка при добавлении комментария');
+      alert(t('comments.errorAdd'));
     } finally {
       setSubmitting(false);
     }
@@ -74,12 +76,12 @@ export default function Comments({ lessonId }) {
       setEditingId(null);
       setEditText('');
     } catch (err) {
-      alert('Ошибка при редактировании комментария');
+      alert(t('comments.errorEdit'));
     }
   };
 
   const handleDelete = async (commentId) => {
-    if (!window.confirm('Вы уверены, что хотите удалить этот комментарий?')) {
+    if (!window.confirm(t('comments.confirmDelete'))) {
       return;
     }
 
@@ -88,7 +90,7 @@ export default function Comments({ lessonId }) {
       await comments.delete(commentId);
       setCommentsList(commentsList.filter((c) => c.id !== commentId));
     } catch (err) {
-      alert('Ошибка при удалении комментария');
+      alert(t('comments.errorDelete'));
     } finally {
       setDeletingId(null);
     }
@@ -103,6 +105,7 @@ export default function Comments({ lessonId }) {
     return username.slice(0, 2).toUpperCase();
   };
 
+  const loc = locale === 'en' ? 'en-US' : 'ru-RU';
   const formatDate = (dateString) => {
     if (!dateString) return '';
     const date = new Date(dateString);
@@ -111,23 +114,14 @@ export default function Comments({ lessonId }) {
     const diffMins = Math.floor(diffMs / 60000);
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
+    const timeStr = date.toLocaleTimeString(loc, { hour: '2-digit', minute: '2-digit' });
 
-    // Для очень свежих комментариев показываем точное время
-    if (diffMins < 1) {
-      return date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-    }
-    if (diffMins < 60) {
-      return `${diffMins} мин. назад (${date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })})`;
-    }
-    if (diffHours < 24) {
-      return `${diffHours} ч. назад (${date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })})`;
-    }
-    if (diffDays < 7) {
-      return `${diffDays} дн. назад (${date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })} ${date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })})`;
-    }
+    if (diffMins < 1) return timeStr;
+    if (diffMins < 60) return `${diffMins} ${locale === 'en' ? 'min ago' : 'мин. назад'} (${timeStr})`;
+    if (diffHours < 24) return `${diffHours} ${locale === 'en' ? 'hr ago' : 'ч. назад'} (${timeStr})`;
+    if (diffDays < 7) return `${diffDays} ${locale === 'en' ? 'd ago' : 'дн. назад'} (${date.toLocaleDateString(loc, { day: 'numeric', month: 'short' })} ${timeStr})`;
 
-    // Для старых комментариев показываем полную дату и время
-    return date.toLocaleString('ru-RU', {
+    return date.toLocaleString(loc, {
       day: 'numeric',
       month: 'long',
       year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined,
@@ -138,13 +132,13 @@ export default function Comments({ lessonId }) {
 
   return (
     <div className="comments-section">
-      <h3 className="comments-title">Комментарии</h3>
+      <h3 className="comments-title">{t('comments.title')}</h3>
 
       {user && (
         <form className="comments-form" onSubmit={handleSubmit}>
           <textarea
             className="comments-input"
-            placeholder="Написать комментарий..."
+            placeholder={t('comments.placeholder')}
             value={newComment}
             onChange={(e) => setNewComment(e.target.value)}
             rows="3"
@@ -155,21 +149,21 @@ export default function Comments({ lessonId }) {
             className="comments-submit-btn"
             disabled={!newComment.trim() || submitting}
           >
-            {submitting ? 'Отправка...' : 'Отправить'}
+            {submitting ? t('comments.submitting') : t('comments.submit')}
           </button>
         </form>
       )}
 
       {!user && (
         <p className="comments-login-hint">
-          <a href="/login">Войдите</a>, чтобы оставить комментарий
+          <a href="/login">{t('comments.loginLink')}</a> {t('comments.loginSuffix')}
         </p>
       )}
 
       {loading ? (
-        <div className="comments-loading">Загрузка комментариев...</div>
+        <div className="comments-loading">{t('comments.loading')}</div>
       ) : commentsList.length === 0 ? (
-        <div className="comments-empty">Пока нет комментариев. Будьте первым!</div>
+        <div className="comments-empty">{t('comments.empty')}</div>
       ) : (
         <div className="comments-list">
           {commentsList.map((comment) => (
@@ -193,8 +187,8 @@ export default function Comments({ lessonId }) {
                       className="comment-edit-btn"
                       onClick={() => handleEdit(comment)}
                       disabled={deletingId === comment.id}
-                      title="Редактировать"
-                      aria-label="Редактировать"
+                      title={t('comments.edit')}
+                      aria-label={t('comments.edit')}
                     >
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
                         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
@@ -206,8 +200,8 @@ export default function Comments({ lessonId }) {
                       className="comment-delete-btn"
                       onClick={() => handleDelete(comment.id)}
                       disabled={deletingId === comment.id}
-                      title={deletingId === comment.id ? 'Удаление...' : 'Удалить'}
-                      aria-label="Удалить"
+                      title={deletingId === comment.id ? t('comments.deleting') : t('comments.delete')}
+                      aria-label={t('comments.delete')}
                     >
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
                         <polyline points="3 6 5 6 21 6" />
@@ -234,14 +228,14 @@ export default function Comments({ lessonId }) {
                       onClick={() => handleSaveEdit(comment.id)}
                       disabled={!editText.trim()}
                     >
-                      Сохранить
+                      {t('comments.save')}
                     </button>
                     <button
                       type="button"
                       className="comment-cancel-btn"
                       onClick={handleCancelEdit}
                     >
-                      Отмена
+                      {t('comments.cancel')}
                     </button>
                   </div>
                 </div>

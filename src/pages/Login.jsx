@@ -1,16 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useLanguage } from '../contexts/LanguageContext';
 import SocialAuthButtons from '../components/SocialAuthButtons';
 
-const OAUTH_ERRORS = {
-  oauth_failed: 'Ошибка OAuth. Попробуйте снова.',
-  oauth_token: 'Не удалось получить токен от провайдера.',
-  oauth_user: 'Не удалось получить данные пользователя.',
-  not_configured: 'Вход через эту соцсеть пока не настроен.',
-};
+const OAUTH_ERROR_KEYS = ['oauth_failed', 'oauth_token', 'oauth_user', 'not_configured'];
 
 export default function Login() {
+  const { t } = useLanguage();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -29,16 +26,16 @@ export default function Login() {
       loginWithTokens(access, refresh).then(() => {
         window.history.replaceState(null, '', window.location.pathname + window.location.search);
         navigate(from, { replace: true });
-      }).catch(() => setError('Ошибка входа по соцсети'));
+      }).catch(() => setError(t('login.oauthError')));
       return;
     }
     const q = new URLSearchParams(location.search);
     const err = q.get('error');
     const social = q.get('social');
-    if (err && (OAUTH_ERRORS[err] || social)) {
-      setError(OAUTH_ERRORS[err] || OAUTH_ERRORS.not_configured);
+    if (err && (OAUTH_ERROR_KEYS.includes(err) || social)) {
+      setError(t('login.' + (OAUTH_ERROR_KEYS.includes(err) ? err : 'not_configured')));
     }
-  }, [location.search, loginWithTokens, navigate, from]);
+  }, [location.search, loginWithTokens, navigate, from, t]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -48,7 +45,7 @@ export default function Login() {
       await login(username, password);
       navigate(from, { replace: true });
     } catch (err) {
-      const msg = err.response?.data?.detail ?? err.response?.data ?? 'Ошибка входа';
+      const msg = err.response?.data?.detail ?? err.response?.data ?? t('login.errorDefault');
       setError(typeof msg === 'object' ? JSON.stringify(msg) : String(msg));
     } finally {
       setLoading(false);
@@ -58,11 +55,11 @@ export default function Login() {
   return (
     <div className="page">
       <div className="form-card">
-        <h1 className="form-title">Вход</h1>
-        <p className="form-subtitle">Войдите в аккаунт, чтобы смотреть курсы</p>
+        <h1 className="form-title">{t('login.title')}</h1>
+        <p className="form-subtitle">{t('login.subtitle')}</p>
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label htmlFor="username">Логин</label>
+            <label htmlFor="username">{t('login.username')}</label>
             <input
               id="username"
               type="text"
@@ -74,7 +71,7 @@ export default function Login() {
             />
           </div>
           <div className="form-group">
-            <label htmlFor="password">Пароль</label>
+            <label htmlFor="password">{t('login.password')}</label>
             <input
               id="password"
               type="password"
@@ -87,12 +84,12 @@ export default function Login() {
           </div>
           {error && <div className="form-error">{error}</div>}
           <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: 8 }} disabled={loading}>
-            {loading ? 'Вход...' : 'Войти'}
+            {loading ? t('login.submitting') : t('login.submit')}
           </button>
           <SocialAuthButtons variant="login" />
         </form>
         <p className="form-footer">
-          Нет аккаунта? <Link to="/register">Зарегистрироваться</Link>
+          {t('login.noAccount')} <Link to="/register">{t('login.registerLink')}</Link>
         </p>
       </div>
     </div>

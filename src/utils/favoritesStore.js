@@ -1,6 +1,6 @@
 const KEY_PREFIX = 'codementor_favorites_';
 
-function getKey(username) {
+export function getKey(username) {
   return username ? `${KEY_PREFIX}${username}` : null;
 }
 

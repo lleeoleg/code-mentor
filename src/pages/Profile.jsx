@@ -1,6 +1,7 @@
 import { useMemo, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useLanguage } from '../contexts/LanguageContext';
 import { getProfile } from '../utils/profileStore';
 import { SOCIAL_LINK_FIELDS, getSocialLinkUrl } from '../constants/socialLinks';
 import { activity as activityApi } from '../api';
@@ -17,11 +18,11 @@ function getInitials(profile, username) {
   return username.slice(0, 2).toUpperCase();
 }
 
-function getDisplayName(profile, username) {
+function getDisplayName(profile, username, userFallback) {
   if (profile?.firstName || profile?.lastName) {
     return [profile.firstName, profile.lastName].filter(Boolean).join(' ').trim();
   }
-  return username ?? 'Пользователь';
+  return username ?? userFallback;
 }
 
 function getUserId(username) {
@@ -30,8 +31,6 @@ function getUserId(username) {
   for (let i = 0; i < username.length; i++) h = ((h << 5) - h) + username.charCodeAt(i) | 0;
   return String(1000000000 + Math.abs(h)).slice(0, 10);
 }
-
-const MONTHS = ['янв.', 'февр.', 'март', 'апр.', 'май', 'июнь', 'июль', 'авг.', 'сент.', 'окт.', 'нояб.', 'дек.'];
 
 function SocialLinkIcon({ id }) {
   const size = 20;
@@ -82,6 +81,7 @@ function SocialLinkIcon({ id }) {
 }
 
 export default function Profile() {
+  const { t } = useLanguage();
   const { user } = useAuth();
   const [profile, setProfile] = useState(() => getProfile(user?.username));
 
@@ -90,8 +90,9 @@ export default function Profile() {
   }, [user?.username]);
 
   const initials = getInitials(profile, user?.username);
-  const displayName = getDisplayName(profile, user?.username);
+  const displayName = getDisplayName(profile, user?.username, t('profile.userFallback'));
   const userId = getUserId(user?.username);
+  const months = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map((i) => t('profileMonths.' + i));
   const hasBio = !!(profile.shortBio?.trim() || profile.aboutMe?.trim());
 
   const socialLinksList = useMemo(() => {
@@ -174,21 +175,21 @@ export default function Profile() {
               <span className="profile-meta-icon" aria-hidden>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
               </span>
-              <span>0 подписчиков</span>
+              <span>0 {t('profile.followers')}</span>
             </p>
             <p className="profile-meta-line">
               <span className="profile-meta-icon" aria-hidden>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L2 12l10 10 10-10L12 2z"/></svg>
               </span>
-              <span>0 знаний</span>
+              <span>0 {t('profile.skills')}</span>
             </p>
           </div>
           <nav className="profile-links">
-            <span className="profile-links-current">Профиль</span>
-            <Link to="/certificates" className="profile-links-link">Сертификаты</Link>
+            <span className="profile-links-current">{t('profile.profile')}</span>
+            <Link to="/certificates" className="profile-links-link">{t('profile.certificates')}</Link>
           </nav>
-          <p className="profile-joined">Присоединился в этом году</p>
-          <p className="profile-userid">User ID: {userId}</p>
+          <p className="profile-joined">{t('profile.joined')}</p>
+          <p className="profile-userid">{t('profile.userId')}: {userId}</p>
         </aside>
 
         <main className="profile-main">
@@ -201,7 +202,7 @@ export default function Profile() {
               )}
               {profile.aboutMe?.trim() && (
                 <div className="profile-bio-about">
-                  <h2 className="profile-bio-title">Обо мне</h2>
+                  <h2 className="profile-bio-title">{t('profile.aboutMe')}</h2>
                   <div className="profile-bio-text">{profile.aboutMe.trim()}</div>
                 </div>
               )}
@@ -210,7 +211,7 @@ export default function Profile() {
 
           {socialLinksList.length > 0 && (
             <section className="profile-links-section">
-              <h2 className="profile-links-section-title">Ссылки</h2>
+              <h2 className="profile-links-section-title">{t('profile.links')}</h2>
               <div className="profile-links-grid">
                 {socialLinksList.map(({ field, url }) => (
                   <a
@@ -232,29 +233,29 @@ export default function Profile() {
           )}
 
           <section className="profile-activity">
-            <h2 className="profile-activity-title">Активность за последний год</h2>
+            <h2 className="profile-activity-title">{t('profile.activity')}</h2>
             <div className="profile-activity-card">
               {activityLoading ? (
                 <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-muted)' }}>
-                  Загрузка активности...
+                  {t('profile.loadingActivity')}
                 </div>
               ) : (
                 <>
-                  <div className="profile-activity-grid" role="img" aria-label="Сетка активности по дням">
+                  <div className="profile-activity-grid" role="img" aria-label={t('profile.activityGridLabel')}>
                     {activityGrid.map((active, i) => (
                       <span
                         key={i}
                         className={`profile-activity-cell ${active ? 'active' : ''}`}
-                        title={active ? 'Начал обучение в этот день' : 'Нет активности'}
+                        title={active ? t('profile.startedThisDay') : t('profile.noActivity')}
                       />
                     ))}
                   </div>
                   <div className="profile-activity-months">
-                    {MONTHS.map((m) => (
-                      <span key={m} className="profile-activity-month">{m}</span>
+                    {months.map((m, idx) => (
+                      <span key={idx} className="profile-activity-month">{m}</span>
                     ))}
                   </div>
-                  <p className="profile-activity-utc">Следующий день в 00:00 UTC</p>
+                  <p className="profile-activity-utc">{t('profile.nextDayUtc')}</p>
                 </>
               )}
             </div>
@@ -262,15 +263,15 @@ export default function Profile() {
             <div className="profile-stats">
               <div className="profile-stat">
                 <span className="profile-stat-value">0</span>
-                <span className="profile-stat-label">дней без перерыва</span>
+                <span className="profile-stat-label">{t('profile.streakDays')}</span>
               </div>
               <div className="profile-stat">
                 <span className="profile-stat-value">0</span>
-                <span className="profile-stat-label">день без перерыва (макс.)</span>
+                <span className="profile-stat-label">{t('profile.streakMax')}</span>
               </div>
               <div className="profile-stat">
                 <span className="profile-stat-value">0</span>
-                <span className="profile-stat-label">задачи решено</span>
+                <span className="profile-stat-label">{t('profile.tasksSolved')}</span>
               </div>
             </div>
           </section>

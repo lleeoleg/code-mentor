@@ -1,18 +1,19 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useLanguage } from '../contexts/LanguageContext';
 import { getProfile, saveProfile } from '../utils/profileStore';
 import { auth as authApi } from '../api';
 import { SOCIAL_LINK_FIELDS } from '../constants/socialLinks';
 import './Settings.css';
 
-const SETTINGS_NAV = [
-  { to: '/settings', label: 'Редактировать профиль' },
-  { to: '/settings/email', label: 'Изменить почту' },
-  { to: '/settings/social', label: 'Вход через социальные сети' },
-  { to: '/settings/social-links', label: 'Ссылки на социальные сети' },
-  { to: '/settings/password', label: 'Установить пароль' },
-  { to: '/settings/details', label: 'Реквизиты' },
+const SETTINGS_NAV_KEYS = [
+  { to: '/settings', key: 'editProfile' },
+  { to: '/settings/email', key: 'changeEmail' },
+  { to: '/settings/social', key: 'socialLogin' },
+  { to: '/settings/social-links', key: 'socialLinks' },
+  { to: '/settings/password', key: 'setPassword' },
+  { to: '/settings/details', key: 'details' },
 ];
 
 function getInitials(profile, username) {
@@ -25,6 +26,7 @@ function getInitials(profile, username) {
 }
 
 export default function Settings() {
+  const { t } = useLanguage();
   const { user } = useAuth();
   const location = useLocation();
   const [profile, setProfileState] = useState(() => {
@@ -106,7 +108,7 @@ export default function Settings() {
     setEmailError('');
     const email = newEmail.trim();
     if (!email) {
-      setEmailError('Введите новый адрес почты.');
+      setEmailError(t('settings.emailRequired'));
       return;
     }
     authApi
@@ -118,7 +120,7 @@ export default function Settings() {
         setTimeout(() => setEmailSaved(false), 2000);
       })
       .catch((err) => {
-        const msg = err.response?.data?.email?.[0] || err.response?.data?.detail || 'Не удалось обновить почту.';
+        const msg = err.response?.data?.email?.[0] || err.response?.data?.detail || t('settings.emailUpdateError');
         setEmailError(typeof msg === 'string' ? msg : JSON.stringify(msg));
       });
   };
@@ -140,11 +142,11 @@ export default function Settings() {
     e.preventDefault();
     setPasswordError('');
     if (newPassword.length < 8) {
-      setPasswordError('Пароль должен быть не менее 8 символов.');
+      setPasswordError(t('settings.passwordMinError'));
       return;
     }
     if (newPassword !== newPasswordConfirm) {
-      setPasswordError('Пароли не совпадают.');
+      setPasswordError(t('settings.passwordMismatch'));
       return;
     }
     setPasswordLoading(true);
@@ -158,7 +160,7 @@ export default function Settings() {
       })
       .catch((err) => {
         const msg = err.response?.data?.new_password || err.response?.data?.new_password_confirm || err.response?.data?.detail;
-        const text = Array.isArray(msg) ? msg.join(' ') : (msg || 'Не удалось изменить пароль.');
+        const text = Array.isArray(msg) ? msg.join(' ') : (msg || t('settings.passwordUpdateError'));
         setPasswordError(text);
       })
       .finally(() => setPasswordLoading(false));
@@ -167,36 +169,36 @@ export default function Settings() {
   const initials = getInitials(profile, user?.username);
 
   const breadcrumbLabel = isEmailTab
-    ? 'Изменить почту'
+    ? t('settings.changeEmail')
     : isSocialTab
-      ? 'Вход через социальные сети'
+      ? t('settings.socialLogin')
       : isSocialLinksTab
-        ? 'Ссылки на социальные сети'
+        ? t('settings.socialLinks')
         : isPasswordTab
-          ? 'Установить пароль'
+          ? t('settings.setPassword')
           : isDetailsTab
-            ? 'Реквизиты'
-            : 'Редактирование профиля';
+            ? t('settings.details')
+            : t('settings.editProfileTitle');
 
   return (
     <div className="page settings-page">
-      <nav className="settings-breadcrumb" aria-label="Хлебные крошки">
-        <Link to="/profile">Профиль</Link>
+      <nav className="settings-breadcrumb" aria-label={t('settings.breadcrumb')}>
+        <Link to="/profile">{t('settings.profile')}</Link>
         <span className="settings-breadcrumb-sep">›</span>
-        <Link to="/settings">Настройки</Link>
+        <Link to="/settings">{t('settings.settings')}</Link>
         <span className="settings-breadcrumb-sep">›</span>
         <span>{breadcrumbLabel}</span>
       </nav>
 
       <div className="settings-layout">
         <aside className="settings-nav">
-          {SETTINGS_NAV.map((item) => (
+          {SETTINGS_NAV_KEYS.map((item) => (
             <Link
               key={item.to}
               to={item.to}
               className={`settings-nav-link ${item.to === location.pathname ? 'active' : ''}`}
             >
-              {item.label}
+              {t('settings.' + item.key)}
             </Link>
           ))}
         </aside>
@@ -204,38 +206,38 @@ export default function Settings() {
         <main className="settings-main">
           {isSocialTab ? (
             <>
-              <h1 className="settings-title">Вход через социальные сети</h1>
+              <h1 className="settings-title">{t('settings.socialLogin')}</h1>
               <ul className="settings-social-list">
                 <li className="settings-social-item">
                   <span>Facebook</span>
-                  <a href="/api/auth/facebook/login/" className="settings-social-link">Подключить</a>
+                  <a href="/api/auth/facebook/login/" className="settings-social-link">{t('settings.connect')}</a>
                 </li>
                 <li className="settings-social-item">
                   <span>GitHub</span>
-                  <a href="/api/auth/github/login/" className="settings-social-link">Подключить</a>
+                  <a href="/api/auth/github/login/" className="settings-social-link">{t('settings.connect')}</a>
                 </li>
                 <li className="settings-social-item">
                   <span>Google</span>
-                  <a href="/api/auth/google/login/" className="settings-social-link">Подключить</a>
+                  <a href="/api/auth/google/login/" className="settings-social-link">{t('settings.connect')}</a>
                 </li>
                 <li className="settings-social-item">
                   <span>VK</span>
-                  <a href="/api/auth/vk/login/" className="settings-social-link">Подключить</a>
+                  <a href="/api/auth/vk/login/" className="settings-social-link">{t('settings.connect')}</a>
                 </li>
                 <li className="settings-social-item">
                   <span>Twitter</span>
-                  <a href="/api/auth/twitter/login/" className="settings-social-link">Подключить</a>
+                  <a href="/api/auth/twitter/login/" className="settings-social-link">{t('settings.connect')}</a>
                 </li>
                 <li className="settings-social-item">
                   <span>Яндекс</span>
-                  <a href="/api/auth/yandex/login/" className="settings-social-link">Подключить</a>
+                  <a href="/api/auth/yandex/login/" className="settings-social-link">{t('settings.connect')}</a>
                 </li>
               </ul>
             </>
           ) : isSocialLinksTab ? (
             <>
-              <h1 className="settings-title">Ссылки на социальные сети</h1>
-              <p className="settings-section-heading">Эти ссылки будут отображаться в вашем профиле:</p>
+              <h1 className="settings-title">{t('settings.socialLinksHeading')}</h1>
+              <p className="settings-section-heading">{t('settings.socialLinksIntro')}</p>
               <form onSubmit={handleSocialLinksSave} className="settings-form settings-social-links-form">
                 {SOCIAL_LINK_FIELDS.map((field) => (
                   <div key={field.id} className="settings-social-link-row">
@@ -254,55 +256,55 @@ export default function Settings() {
                   </div>
                 ))}
                 <button type="submit" className="settings-submit">
-                  {socialLinksSaved ? 'Сохранено' : 'Сохранить изменения'}
+                  {socialLinksSaved ? t('settings.saved') : t('settings.save')}
                 </button>
               </form>
             </>
           ) : isPasswordTab ? (
             <>
-              <h1 className="settings-title">Установить пароль</h1>
+              <h1 className="settings-title">{t('settings.setPasswordTitle')}</h1>
               <form onSubmit={handlePasswordSubmit} className="settings-form">
                 <div className="settings-field">
-                  <label className="settings-label" htmlFor="new-password">Новый пароль</label>
+                  <label className="settings-label" htmlFor="new-password">{t('settings.newPassword')}</label>
                   <input
                     id="new-password"
                     type="password"
                     className="settings-input"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="Минимум 8 символов"
+                    placeholder={t('settings.passwordPlaceholder')}
                     minLength={8}
                     autoComplete="new-password"
                     required
                   />
                 </div>
                 <div className="settings-field">
-                  <label className="settings-label" htmlFor="new-password-confirm">Новый пароль (ещё раз)</label>
+                  <label className="settings-label" htmlFor="new-password-confirm">{t('settings.newPasswordAgain')}</label>
                   <input
                     id="new-password-confirm"
                     type="password"
                     className="settings-input"
                     value={newPasswordConfirm}
                     onChange={(e) => setNewPasswordConfirm(e.target.value)}
-                    placeholder="Повторите пароль"
+                    placeholder={t('settings.repeatPassword')}
                     autoComplete="new-password"
                     required
                   />
                 </div>
                 {passwordError && <p className="form-error">{passwordError}</p>}
                 <button type="submit" className="settings-submit" disabled={passwordLoading}>
-                  {passwordSaved ? 'Сохранено' : passwordLoading ? 'Сохранение...' : 'Сохранить изменения'}
+                  {passwordSaved ? t('settings.saved') : passwordLoading ? t('settings.saving') : t('settings.save')}
                 </button>
               </form>
             </>
           ) : isDetailsTab ? (
             <>
-              <h1 className="settings-title">Реквизиты для перечисления денежных средств</h1>
+              <h1 className="settings-title">{t('settings.detailsTitle')}</h1>
               <div className="settings-details-form">
                 <div className="settings-field">
                   <label className="settings-label settings-label-with-hint" htmlFor="details-contact-email">
-                    Контактный e-mail
-                    <span className="settings-hint-icon" title="Для отправки платёжных документов" aria-label="Подсказка">?</span>
+                    {t('settings.contactEmail')}
+                    <span className="settings-hint-icon" title={t('settings.contactEmailHint')} aria-label={t('settings.hint')}>?</span>
                   </label>
                   <input
                     id="details-contact-email"
@@ -312,28 +314,28 @@ export default function Settings() {
                     readOnly
                     aria-describedby="details-email-hint"
                   />
-                  <p id="details-email-hint" className="settings-details-hint">Для отправки платёжных документов</p>
+                  <p id="details-email-hint" className="settings-details-hint">{t('settings.contactEmailHint')}</p>
                 </div>
                 <div className="settings-details-section">
-                  <h2 className="settings-details-heading">Получение средств в КЗ</h2>
+                  <h2 className="settings-details-heading">{t('settings.detailsKz')}</h2>
                   <p className="settings-details-links">
-                    <a href="#financial-conditions" className="settings-social-link">Финансовые условия</a>
+                    <a href="#financial-conditions" className="settings-social-link">{t('settings.financialConditions')}</a>
                   </p>
                   <p className="settings-details-agreement">
-                    Переходя к заполнению реквизитов, вы соглашаетесь с{' '}
-                    <a href="#offer" className="settings-social-link">офертой (агентским договором)</a>
-                    {' '}о продажах курсов в рублях.
+                    {t('settings.detailsAgreement')}{' '}
+                    <a href="#offer" className="settings-social-link">{t('settings.offerLink')}</a>
+                    {' '}{t('settings.offerSuffix')}
                   </p>
-                  <button type="button" className="settings-submit">Заполнить реквизиты</button>
+                  <button type="button" className="settings-submit">{t('settings.fillDetails')}</button>
                 </div>
               </div>
             </>
           ) : isEmailTab ? (
             <>
-              <h1 className="settings-title">Изменить почту</h1>
-              <p className="settings-section-heading">Ваши почтовые адреса:</p>
+              <h1 className="settings-title">{t('settings.changeEmailTitle')}</h1>
+              <p className="settings-section-heading">{t('settings.yourEmails')}</p>
               {userMeLoading ? (
-                <p className="text-muted">Загрузка...</p>
+                <p className="text-muted">{t('settings.loading')}</p>
               ) : (
                 <>
                   <div className="settings-email-row">
@@ -342,11 +344,11 @@ export default function Settings() {
                       className="settings-input settings-email-current"
                       value={userMe?.email || ''}
                       readOnly
-                      aria-label="Текущий адрес"
+                      aria-label={t('settings.currentAddress')}
                     />
                     <span className="settings-email-badges">
-                      <span className="settings-email-badge">Основной</span>
-                      <span className="settings-email-badge">Подтверждён</span>
+                      <span className="settings-email-badge">{t('settings.primary')}</span>
+                      <span className="settings-email-badge">{t('settings.verified')}</span>
                     </span>
                   </div>
                   <form onSubmit={handleAddEmail} className="settings-form" style={{ marginTop: 16 }}>
@@ -354,15 +356,15 @@ export default function Settings() {
                       <input
                         type="email"
                         className="settings-input"
-                        placeholder="Новый адрес"
+                        placeholder={t('settings.newAddress')}
                         value={newEmail}
                         onChange={(e) => setNewEmail(e.target.value)}
-                        aria-label="Новый адрес почты"
+                        aria-label={t('settings.newAddress')}
                       />
                     </div>
                     {emailError && <p className="form-error">{emailError}</p>}
                     <button type="submit" className="settings-submit">
-                      {emailSaved ? 'Сохранено' : 'Добавить почту'}
+                      {emailSaved ? t('settings.saved') : t('settings.addEmail')}
                     </button>
                   </form>
                 </>
@@ -370,11 +372,11 @@ export default function Settings() {
             </>
           ) : (
             <>
-          <h1 className="settings-title">Редактирование профиля</h1>
+          <h1 className="settings-title">{t('settings.editProfileTitle')}</h1>
 
           <form onSubmit={handleSave} className="settings-form">
             <div className="settings-field">
-              <label className="settings-label" htmlFor="firstName">Ваше имя *</label>
+              <label className="settings-label" htmlFor="firstName">{t('settings.yourName')}</label>
               <input
                 id="firstName"
                 type="text"
@@ -384,7 +386,7 @@ export default function Settings() {
               />
             </div>
             <div className="settings-field">
-              <label className="settings-label" htmlFor="lastName">Фамилия *</label>
+              <label className="settings-label" htmlFor="lastName">{t('settings.lastName')}</label>
               <input
                 id="lastName"
                 type="text"
@@ -393,34 +395,34 @@ export default function Settings() {
                 onChange={(e) => setProfile({ lastName: e.target.value })}
               />
             </div>
-            <p className="settings-hint">Ваше официальное имя, используемое в сертификатах.</p>
+            <p className="settings-hint">{t('settings.nameHint')}</p>
 
             <div className="settings-field">
-              <label className="settings-label">Приватность</label>
+              <label className="settings-label">{t('settings.privacy')}</label>
               <label className="settings-checkbox">
                 <input
                   type="checkbox"
                   checked={profile.isPrivate}
                   onChange={(e) => setProfile({ isPrivate: e.target.checked })}
                 />
-                <span>Сделать профиль приватным</span>
+                <span>{t('settings.makePrivate')}</span>
               </label>
             </div>
 
             <div className="settings-field">
-              <label className="settings-label">Программа бета-тестирования</label>
+              <label className="settings-label">{t('settings.betaProgram')}</label>
               <label className="settings-checkbox">
                 <input
                   type="checkbox"
                   checked={profile.betaProgram}
                   onChange={(e) => setProfile({ betaProgram: e.target.checked })}
                 />
-                <span>Хочу участвовать</span>
+                <span>{t('settings.wantToParticipate')}</span>
               </label>
             </div>
 
             <div className="settings-field">
-              <label className="settings-label" htmlFor="shortBio">Краткая биография (до 255 символов)</label>
+              <label className="settings-label" htmlFor="shortBio">{t('settings.shortBio')}</label>
               <textarea
                 id="shortBio"
                 className="settings-textarea settings-textarea-short"
@@ -433,7 +435,7 @@ export default function Settings() {
             </div>
 
             <div className="settings-field">
-              <label className="settings-label" htmlFor="aboutMe">Обо мне</label>
+              <label className="settings-label" htmlFor="aboutMe">{t('settings.aboutMe')}</label>
               <textarea
                 id="aboutMe"
                 className="settings-textarea"
@@ -444,13 +446,13 @@ export default function Settings() {
             </div>
 
             <button type="submit" className="settings-submit">
-              {saved ? 'Сохранено' : 'Сохранить изменения'}
+              {saved ? t('settings.saved') : t('settings.save')}
             </button>
           </form>
 
           <section className="settings-section">
             <div className="settings-field settings-field-row">
-              <label className="settings-label">Аватарка</label>
+              <label className="settings-label">{t('settings.avatar')}</label>
               <div className="settings-avatar-block">
                 <div className="settings-avatar-preview">
                   {profile.avatar ? (
@@ -465,14 +467,14 @@ export default function Settings() {
                   accept="image/*"
                   className="settings-file-hidden"
                   onChange={handleAvatarUpload}
-                  aria-label="Загрузить аватар"
+                  aria-label={t('settings.uploadAvatar')}
                 />
                 <div className="settings-avatar-actions">
                   <button type="button" className="settings-link" onClick={() => avatarInputRef.current?.click()}>
-                    Загрузить
+                    {t('settings.upload')}
                   </button>
                   <button type="button" className="settings-link" onClick={handleAvatarRemove}>
-                    Убрать
+                    {t('settings.remove')}
                   </button>
                 </div>
               </div>

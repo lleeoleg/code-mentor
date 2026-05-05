@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { FavoritesProvider } from './contexts/FavoritesContext';
+import { LanguageProvider } from './contexts/LanguageContext';
 import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
 import Login from './pages/Login';
@@ -18,6 +19,7 @@ import './index.css';
 export default function App() {
   return (
     <AuthProvider>
+      <LanguageProvider>
       <FavoritesProvider>
       <BrowserRouter>
         <Routes>
@@ -126,6 +128,7 @@ export default function App() {
         </Routes>
       </BrowserRouter>
       </FavoritesProvider>
+      </LanguageProvider>
     </AuthProvider>
   );
 }
