@@ -2,6 +2,7 @@ import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-nati
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { HOME_REVIEWS } from '@/constants/homeScreenContent';
+import { AppTheme } from '@/constants/theme';
 
 const CARD_W = 286;
 
@@ -13,7 +14,7 @@ export function HomeReviewsStrip() {
       <View style={styles.headRow}>
         <View style={styles.titleRow}>
           <Text style={styles.sectionTitle}>Отзывы студентов</Text>
-          <Ionicons name="people-outline" size={20} color="#3f8cff" style={styles.titleIcon} />
+          <Ionicons name="people-outline" size={20} color={AppTheme.accent} style={styles.titleIcon} />
         </View>
       </View>
 
@@ -42,7 +43,7 @@ export function HomeReviewsStrip() {
               onPress={() => router.push(`/course/${r.courseId}`)}
               activeOpacity={0.85}
             >
-              <Ionicons name="play-circle-outline" size={16} color="#3f8cff" style={styles.playIcon} />
+              <Ionicons name="play-circle-outline" size={16} color={AppTheme.accent} style={styles.playIcon} />
               <Text style={styles.courseLinkText} numberOfLines={2}>
                 {r.course}
               </Text>
@@ -74,7 +75,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#0d0d0d',
+    color: AppTheme.text,
   },
   trackScroll: {},
   track: {
@@ -83,13 +84,13 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
   },
   card: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.92)',
+    borderRadius: AppTheme.radius,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: AppTheme.border,
     paddingVertical: 16,
     paddingHorizontal: 16,
-    shadowColor: '#000',
+    shadowColor: AppTheme.accent,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.06,
     shadowRadius: 6,
@@ -119,12 +120,12 @@ const styles = StyleSheet.create({
   name: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#111827',
+    color: AppTheme.text,
     marginBottom: 2,
   },
   date: {
     fontSize: 12,
-    color: '#6b7280',
+    color: AppTheme.textMuted,
   },
   courseLink: {
     flexDirection: 'row',
@@ -137,12 +138,12 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 13,
     fontWeight: '500',
-    color: '#3f8cff',
+    color: AppTheme.accent,
     lineHeight: 18,
   },
   body: {
     fontSize: 13,
     lineHeight: 19,
-    color: '#374151',
+    color: AppTheme.textMuted,
   },
 });

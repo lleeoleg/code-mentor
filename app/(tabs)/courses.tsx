@@ -18,6 +18,7 @@ import {
   LEVEL_FILTER_OPTIONS,
   PRICE_FILTER_OPTIONS,
 } from '@/utils/courseHelpers';
+import { AppTheme, chipStyles } from '@/constants/theme';
 type Course = {
   id: number;
   title: string;
@@ -85,10 +86,10 @@ export default function CoursesScreen() {
       <TextInput
         style={styles.searchInput}
         placeholder="Поиск по курсам..."
-        placeholderTextColor="#4b5563"
+        placeholderTextColor={AppTheme.textMuted}
         value={searchQ}
         onChangeText={setSearchQ}
-        selectionColor="#2563eb"
+        selectionColor={AppTheme.accent}
         underlineColorAndroid="transparent"
       />
 
@@ -118,7 +119,7 @@ export default function CoursesScreen() {
       </View>
 
       {loading ? (
-        <ActivityIndicator style={styles.loader} />
+        <ActivityIndicator style={styles.loader} color={AppTheme.accent} />
       ) : error ? (
         <Text style={styles.error}>{error}</Text>
       ) : (
@@ -135,29 +136,29 @@ export default function CoursesScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  container: { flex: 1, backgroundColor: 'transparent' },
   searchInput: {
     margin: 16,
     marginBottom: 12,
-    borderWidth: 1.5,
-    borderColor: '#9ca3af',
-    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: AppTheme.border,
+    borderRadius: AppTheme.radiusSm,
     paddingVertical: 14,
     paddingHorizontal: 14,
     fontSize: 17,
     lineHeight: 22,
-    color: '#111827',
-    backgroundColor: '#f9fafb',
+    color: AppTheme.text,
+    backgroundColor: 'rgba(255,255,255,0.85)',
   },
   filterRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', marginHorizontal: 16, marginBottom: 12 },
-  filterLabel: { fontSize: 14, marginRight: 8, marginBottom: 8 },
-  chip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, backgroundColor: '#e5e7eb', marginRight: 8, marginBottom: 8 },
-  chipActive: { backgroundColor: '#0d0d0d' },
-  chipText: { fontSize: 13 },
-  chipTextActive: { color: '#fff' },
+  filterLabel: { fontSize: 14, marginRight: 8, marginBottom: 8, color: AppTheme.textMuted },
+  chip: { ...chipStyles.chip, marginBottom: 8 },
+  chipActive: chipStyles.chipActive,
+  chipText: { ...chipStyles.chipText, fontSize: 13 },
+  chipTextActive: chipStyles.chipTextActive,
   loader: { marginTop: 48 },
-  error: { color: '#dc2626', padding: 16 },
-  muted: { color: '#6b7280', padding: 16 },
+  error: { color: AppTheme.error, padding: 16 },
+  muted: { color: AppTheme.textMuted, padding: 16 },
   list: { padding: 16, paddingTop: 0 },
   catalogCard: { marginBottom: 16 },
 });

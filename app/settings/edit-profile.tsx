@@ -14,6 +14,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { getProfile, saveProfile, type Profile } from '@/utils/profileStore';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
+import { AppTheme } from '@/constants/theme';
 
 function getInitials(profile: Profile | null, username: string | undefined): string {
   if (profile?.firstName && profile?.lastName) {
@@ -105,7 +106,7 @@ export default function EditProfileScreen() {
           <Switch
             value={profile.isPrivate}
             onValueChange={(v) => setProfile({ isPrivate: v })}
-            trackColor={{ false: '#e5e7eb', true: '#0d0d0d' }}
+            trackColor={{ false: AppTheme.border, true: AppTheme.accent }}
             thumbColor="#fff"
           />
         </View>
@@ -116,7 +117,7 @@ export default function EditProfileScreen() {
           <Switch
             value={profile.betaProgram}
             onValueChange={(v) => setProfile({ betaProgram: v })}
-            trackColor={{ false: '#e5e7eb', true: '#0d0d0d' }}
+            trackColor={{ false: AppTheme.border, true: AppTheme.accent }}
             thumbColor="#fff"
           />
         </View>
@@ -200,7 +201,7 @@ const styles = StyleSheet.create({
   hint: { fontSize: 14, color: '#6b7280', marginBottom: 16 },
   charCount: { fontSize: 12, color: '#9ca3af', marginTop: 4 },
   submitBtn: {
-    backgroundColor: '#0d0d0d',
+    backgroundColor: AppTheme.accent,
     paddingVertical: 14,
     borderRadius: 10,
     alignItems: 'center',

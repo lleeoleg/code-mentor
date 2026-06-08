@@ -22,6 +22,8 @@ import {
 import { CourseGridCard } from '@/components/CourseGridCard';
 import { HomeProgramSlider } from '@/components/HomeProgramSlider';
 import { HomeReviewsStrip } from '@/components/HomeReviewsStrip';
+import { GradientButton } from '@/components/GradientButton';
+import { AppTheme, chipStyles } from '@/constants/theme';
 
 const WEBINAR_URL = 'https://welcome.stepik.org/go_career';
 
@@ -67,7 +69,7 @@ export default function HomeScreen() {
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+    <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
       {/* Полоса поиска */}
       <View style={styles.searchStrip}>
         <TouchableOpacity style={styles.searchBtn} onPress={handleSearch} activeOpacity={0.8}>
@@ -92,13 +94,9 @@ export default function HomeScreen() {
           Платформа для обучения программированию. Выбирайте курсы по уровню и получайте практические навыки.
         </Text>
         {user ? (
-          <TouchableOpacity style={styles.primaryBtn} onPress={() => router.push('/(tabs)/courses')} activeOpacity={0.9}>
-            <Text style={styles.primaryBtnText}>Каталог курсов</Text>
-          </TouchableOpacity>
+          <GradientButton title="Каталог курсов" onPress={() => router.push('/(tabs)/courses')} />
         ) : (
-          <TouchableOpacity style={styles.primaryBtn} onPress={() => router.push('/register')} activeOpacity={0.9}>
-            <Text style={styles.primaryBtnText}>Начать бесплатно</Text>
-          </TouchableOpacity>
+          <GradientButton title="Начать бесплатно" onPress={() => router.push('/register')} />
         )}
       </View>
 
@@ -131,7 +129,7 @@ export default function HomeScreen() {
           </ScrollView>
 
           {loading ? (
-            <ActivityIndicator style={styles.loader} color="#0d0d0d" />
+            <ActivityIndicator style={styles.loader} color={AppTheme.accent} />
           ) : filteredByLevel.length === 0 ? (
             <Text style={styles.muted}>Пока нет курсов.</Text>
           ) : (
@@ -170,27 +168,24 @@ export default function HomeScreen() {
 
 const SPACING = 20;
 
-const PAGE_BG = '#f3f4f6';
-
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: PAGE_BG },
+  container: { flex: 1, backgroundColor: 'transparent' },
   content: { paddingBottom: 32, paddingTop: SPACING },
   searchStrip: {
     paddingHorizontal: 16,
     paddingTop: 0,
     paddingBottom: SPACING,
-    backgroundColor: PAGE_BG,
   },
   searchBtn: {
     paddingVertical: 14,
     paddingHorizontal: 14,
-    backgroundColor: '#f9fafb',
-    borderRadius: 10,
-    borderWidth: 1.5,
-    borderColor: '#9ca3af',
+    backgroundColor: 'rgba(255,255,255,0.85)',
+    borderRadius: AppTheme.radiusSm,
+    borderWidth: 1,
+    borderColor: AppTheme.border,
   },
   searchPlaceholder: {
-    color: '#4b5563',
+    color: AppTheme.textMuted,
     fontSize: 17,
     lineHeight: 22,
   },
@@ -200,24 +195,24 @@ const styles = StyleSheet.create({
     paddingLeft: 16,
     paddingRight: 14,
     paddingVertical: 12,
-    backgroundColor: '#fafafa',
-    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.7)',
+    borderRadius: AppTheme.radius,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: AppTheme.border,
     borderLeftWidth: 4,
-    borderLeftColor: '#3b82f6',
+    borderLeftColor: AppTheme.accent,
   },
   webinarLabel: {
     fontSize: 11,
     fontWeight: '700',
     letterSpacing: 0.06,
-    color: '#6b7280',
+    color: AppTheme.textMuted,
     marginBottom: 4,
   },
   webinarTitle: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#111',
+    color: AppTheme.text,
     lineHeight: 20,
   },
   heroText: {
@@ -226,75 +221,53 @@ const styles = StyleSheet.create({
     paddingTop: 14,
     paddingBottom: 14,
     alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.75)',
+    borderRadius: AppTheme.radius,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: AppTheme.border,
   },
   heroTitle: {
     fontSize: 20,
     fontWeight: '800',
-    color: '#0d0d0d',
+    color: AppTheme.text,
     marginBottom: 8,
     textAlign: 'center',
   },
   heroDesc: {
     fontSize: 14,
-    color: '#4b5563',
+    color: AppTheme.textMuted,
     marginBottom: 12,
     lineHeight: 20,
     textAlign: 'center',
   },
-  primaryBtn: {
-    backgroundColor: '#0d0d0d',
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 10,
-  },
-  primaryBtnText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
   sectionTitle: {
     fontSize: 20,
     fontWeight: '700',
+    color: AppTheme.text,
     marginHorizontal: 16,
     marginTop: SPACING + 4,
     marginBottom: 12,
   },
   sectionSubtitle: {
     fontSize: 14,
-    color: '#6b7280',
+    color: AppTheme.textMuted,
     marginHorizontal: 16,
     marginBottom: 8,
   },
   tabsScroll: { marginBottom: 12, maxHeight: 44 },
   tabsContent: { paddingHorizontal: 16, gap: 8 },
-  tab: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 20,
-    backgroundColor: '#e5e7eb',
-    marginRight: 8,
-  },
-  tabActive: { backgroundColor: '#0d0d0d' },
-  tabText: { fontSize: 14, color: '#374151' },
-  tabTextActive: { color: '#fff' },
+  tab: { ...chipStyles.chip, marginRight: 8 },
+  tabActive: chipStyles.chipActive,
+  tabText: chipStyles.chipText,
+  tabTextActive: chipStyles.chipTextActive,
   chipsScroll: { marginBottom: 16, maxHeight: 44 },
   chipsContent: { paddingHorizontal: 16 },
-  chip: {
-    marginRight: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: '#e5e7eb',
-  },
-  chipActive: { backgroundColor: '#0d0d0d' },
-  chipText: { fontSize: 14, color: '#374151' },
-  chipTextActive: { color: '#fff' },
+  chip: { ...chipStyles.chip, marginRight: 10 },
+  chipActive: chipStyles.chipActive,
+  chipText: chipStyles.chipText,
+  chipTextActive: chipStyles.chipTextActive,
   loader: { marginVertical: 24 },
-  muted: { color: '#6b7280', padding: 16 },
+  muted: { color: AppTheme.textMuted, padding: 16 },
   grid: { paddingHorizontal: 16, gap: 12, flexDirection: 'row', flexWrap: 'wrap' },
   moreCoursesBtn: {
     alignSelf: 'flex-end',
@@ -304,7 +277,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 4,
   },
-  moreCoursesText: { color: '#3f8cff', fontSize: 15, fontWeight: '600' },
+  moreCoursesText: { color: AppTheme.accent, fontSize: 15, fontWeight: '600' },
   linkBtn: { alignSelf: 'center', marginTop: 24 },
-  linkBtnText: { color: '#3f8cff', fontSize: 16 },
+  linkBtnText: { color: AppTheme.accent, fontSize: 16, fontWeight: '600' },
 });

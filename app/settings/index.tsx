@@ -1,5 +1,6 @@
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
+import { AppTheme } from '@/constants/theme';
 
 const SETTINGS_NAV = [
   { route: 'edit-profile' as const, label: 'Редактировать профиль' },
@@ -34,17 +35,25 @@ export default function SettingsIndex() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  section: { padding: 20 },
-  breadcrumb: { fontSize: 14, color: '#6b7280', marginBottom: 16 },
+  container: { flex: 1, backgroundColor: 'transparent' },
+  section: {
+    margin: 16,
+    padding: 4,
+    backgroundColor: 'rgba(255,255,255,0.92)',
+    borderRadius: AppTheme.radius,
+    borderWidth: 1,
+    borderColor: AppTheme.border,
+  },
+  breadcrumb: { fontSize: 14, color: AppTheme.textMuted, marginBottom: 16, paddingHorizontal: 16, paddingTop: 16 },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingVertical: 14,
+    paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+    borderBottomColor: AppTheme.border,
   },
-  rowText: { fontSize: 16, color: '#111' },
-  chevron: { fontSize: 18, color: '#9ca3af' },
+  rowText: { fontSize: 16, color: AppTheme.text },
+  chevron: { fontSize: 18, color: AppTheme.textMuted },
 });

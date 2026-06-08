@@ -12,12 +12,14 @@ import { getCourseCardBadgeLines } from '@/utils/courseCardBranding';
 import { useFavorites } from '@/contexts/FavoritesContext';
 import type { FavoriteCourse } from '@/contexts/FavoritesContext';
 
-const HEADER_BG = '#F5F5F5';
-const BADGE_BG = '#FDF2D9';
-const BADGE_TEXT = '#A37F4C';
-const PRICE_BLUE = '#4A90E2';
-const LOGO_BLUE = '#007BFF';
-const CARD_BORDER = '#e8e8e8';
+import { AppTheme } from '@/constants/theme';
+
+const HEADER_BG = '#eef2ff';
+const BADGE_BG = 'rgba(99, 102, 241, 0.12)';
+const BADGE_TEXT = AppTheme.accentHover;
+const PRICE_BLUE = AppTheme.accent;
+const LOGO_BLUE = AppTheme.accent;
+const CARD_BORDER = AppTheme.border;
 
 export type CourseGridCourse = {
   id: number;
@@ -128,12 +130,12 @@ export function CourseGridCard({
 
 const styles = StyleSheet.create({
   shadowWrap: {
-    borderRadius: 14,
-    backgroundColor: '#fff',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
+    borderRadius: AppTheme.radius,
+    backgroundColor: AppTheme.card,
+    shadowColor: AppTheme.accent,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
     elevation: 4,
   },
   fullWidth: {
@@ -205,7 +207,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#111827',
+    color: AppTheme.text,
     lineHeight: 20,
     marginBottom: 10,
   },

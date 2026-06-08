@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { HOME_PROGRAMS } from '@/constants/homeScreenContent';
+import { AppTheme } from '@/constants/theme';
 
 export function HomeProgramSlider() {
   const router = useRouter();
@@ -19,7 +20,7 @@ export function HomeProgramSlider() {
       <View style={styles.headRow}>
         <View style={styles.titleRow}>
           <Text style={styles.sectionTitle}>Программы курсов</Text>
-          <Ionicons name="book-outline" size={20} color="#3f8cff" style={styles.titleIcon} />
+          <Ionicons name="book-outline" size={20} color={AppTheme.accent} style={styles.titleIcon} />
         </View>
       </View>
 
@@ -60,7 +61,7 @@ const styles = StyleSheet.create({
     paddingTop: 28,
     paddingBottom: 8,
     borderTopWidth: 1,
-    borderTopColor: '#e5e7eb',
+    borderTopColor: AppTheme.border,
   },
   headRow: {
     paddingHorizontal: 16,
@@ -75,7 +76,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#0d0d0d',
+    color: AppTheme.text,
   },
   trackScroll: { marginBottom: 12 },
   track: {
@@ -91,11 +92,11 @@ const styles = StyleSheet.create({
     maxWidth: 260,
     paddingVertical: 14,
     paddingHorizontal: 16,
-    backgroundColor: '#fff',
-    borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.92)',
+    borderRadius: AppTheme.radiusSm,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
-    shadowColor: '#000',
+    borderColor: AppTheme.border,
+    shadowColor: AppTheme.accent,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.06,
     shadowRadius: 6,
@@ -111,13 +112,13 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 14,
     fontWeight: '500',
-    color: '#1a1a1a',
+    color: AppTheme.text,
     lineHeight: 18,
   },
   sliderBar: {
     marginHorizontal: 16,
     height: 4,
-    backgroundColor: '#e5e7eb',
+    backgroundColor: AppTheme.border,
     borderRadius: 999,
     position: 'relative',
     overflow: 'hidden',
@@ -128,7 +129,7 @@ const styles = StyleSheet.create({
     top: 0,
     bottom: 0,
     width: '22%',
-    backgroundColor: '#3f8cff',
+    backgroundColor: AppTheme.accent,
     borderRadius: 999,
   },
 });

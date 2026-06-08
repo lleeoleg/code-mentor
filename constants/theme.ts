@@ -1,53 +1,61 @@
 /**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
+ * Палитра CodeMentor — совпадает с frontend/src/index.css
  */
-
-import { Platform } from 'react-native';
-
-const tintColorLight = '#0a7ea4';
-const tintColorDark = '#fff';
+export const AppTheme = {
+  bg: '#f4f3ff',
+  bgAlt: '#ede9fe',
+  card: '#ffffff',
+  cardHover: '#faf5ff',
+  text: '#1e1b4b',
+  textMuted: '#64748b',
+  accent: '#6366f1',
+  accentHover: '#4f46e5',
+  accentViolet: '#8b5cf6',
+  accentPink: '#ec4899',
+  border: '#e0e7ff',
+  error: '#ef4444',
+  green: '#10b981',
+  gradientPage: ['#eef2ff', '#fdf4ff', '#ecfeff'] as const,
+  gradientBtn: ['#6366f1', '#8b5cf6', '#a855f7'] as const,
+  gradientHeader: ['#4338ca', '#6366f1', '#a855f7'] as const,
+  radius: 14,
+  radiusSm: 10,
+  decorOpacity: 0.22,
+};
 
 export const Colors = {
   light: {
-    text: '#11181C',
-    background: '#fff',
-    tint: tintColorLight,
-    icon: '#687076',
-    tabIconDefault: '#687076',
-    tabIconSelected: tintColorLight,
+    text: AppTheme.text,
+    background: AppTheme.bg,
+    tint: AppTheme.accent,
+    icon: AppTheme.textMuted,
+    tabIconDefault: AppTheme.textMuted,
+    tabIconSelected: AppTheme.accent,
   },
   dark: {
     text: '#ECEDEE',
     background: '#151718',
-    tint: tintColorDark,
+    tint: '#fff',
     icon: '#9BA1A6',
     tabIconDefault: '#9BA1A6',
-    tabIconSelected: tintColorDark,
+    tabIconSelected: '#fff',
   },
 };
 
-export const Fonts = Platform.select({
-  ios: {
-    /** iOS `UIFontDescriptorSystemDesignDefault` */
-    sans: 'system-ui',
-    /** iOS `UIFontDescriptorSystemDesignSerif` */
-    serif: 'ui-serif',
-    /** iOS `UIFontDescriptorSystemDesignRounded` */
-    rounded: 'ui-rounded',
-    /** iOS `UIFontDescriptorSystemDesignMonospaced` */
-    mono: 'ui-monospace',
+export const chipStyles = {
+  chip: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.85)',
+    borderWidth: 2,
+    borderColor: AppTheme.border,
+    marginRight: 8,
   },
-  default: {
-    sans: 'normal',
-    serif: 'serif',
-    rounded: 'normal',
-    mono: 'monospace',
+  chipActive: {
+    backgroundColor: AppTheme.accent,
+    borderColor: AppTheme.accent,
   },
-  web: {
-    sans: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
-    serif: "Georgia, 'Times New Roman', serif",
-    rounded: "'SF Pro Rounded', 'Hiragino Maru Gothic ProN', Meiryo, 'MS PGothic', sans-serif",
-    mono: "SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
-  },
-});
+  chipText: { fontSize: 14, color: AppTheme.textMuted, fontWeight: '600' as const },
+  chipTextActive: { color: '#fff' },
+};

@@ -7,6 +7,7 @@ import { useMyLearning } from '@/contexts/MyLearningContext';
 import { levelLabel, formatCoursePrice } from '@/utils/courseHelpers';
 import { courses, exams } from '@/lib/api';
 import { useLessonProgress } from '@/contexts/LessonProgressContext';
+import { AppTheme } from '@/constants/theme';
 
 export default function MyLearningScreen() {
   const { favorites, removeFavorite } = useFavorites();
@@ -159,13 +160,13 @@ export default function MyLearningScreen() {
               </Link>
               <View style={styles.rowActions}>
                 <Link href={`/course/${e.course}/learn`} asChild>
-                  <TouchableOpacity style={styles.iconBtn} accessibilityLabel="Продолжить">
-                    <Ionicons name="play" size={22} color="#3f8cff" />
+                  <TouchableOpacity style={styles.iconBtn} accessibilityLabel="Продолжить" activeOpacity={0.8}>
+                    <Ionicons name="play-circle-outline" size={24} color={AppTheme.accent} />
                   </TouchableOpacity>
                 </Link>
                 <Link href={`/course/${e.course}/exam`} asChild>
-                  <TouchableOpacity style={[styles.iconBtn, styles.iconBtnExam]} accessibilityLabel="Итоговый тест">
-                    <Ionicons name="clipboard-outline" size={22} color="#f59e0b" />
+                  <TouchableOpacity style={[styles.iconBtn, styles.iconBtnExam]} accessibilityLabel="Итоговый тест" activeOpacity={0.8}>
+                    <Ionicons name="clipboard-outline" size={24} color="#f59e0b" />
                   </TouchableOpacity>
                 </Link>
               </View>
@@ -204,58 +205,60 @@ export default function MyLearningScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  container: { flex: 1, backgroundColor: 'transparent' },
   content: { padding: 16, paddingBottom: 32 },
-  title: { fontSize: 20, fontWeight: '700', marginBottom: 20 },
-  sectionTitle: { fontSize: 18, fontWeight: '600', marginBottom: 12, color: '#111' },
+  title: { fontSize: 20, fontWeight: '700', marginBottom: 20, color: AppTheme.text },
+  sectionTitle: { fontSize: 18, fontWeight: '600', marginBottom: 12, color: AppTheme.text },
   sectionTitleSpaced: { marginTop: 24 },
-  muted: { fontSize: 15, color: '#6b7280', textAlign: 'center', marginBottom: 8 },
+  muted: { fontSize: 15, color: AppTheme.textMuted, textAlign: 'center', marginBottom: 8 },
   refreshBtn: { alignSelf: 'center', paddingVertical: 10, paddingHorizontal: 16 },
-  refreshBtnText: { color: '#3f8cff', fontWeight: '600' },
+  refreshBtnText: { color: AppTheme.accent, fontWeight: '600' },
   list: { marginBottom: 24 },
   card: {
     flexDirection: 'row',
     alignItems: 'stretch',
-    backgroundColor: '#fff',
-    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.92)',
+    borderRadius: AppTheme.radius,
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: AppTheme.border,
     overflow: 'hidden',
   },
   cardMain: { flex: 1, padding: 14 },
   cardMainTouch: { flex: 1, paddingVertical: 4 },
   rowActions: {
+    width: 64,
+    alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-    paddingRight: 10,
-    paddingVertical: 8,
+    gap: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
     borderLeftWidth: 1,
-    borderLeftColor: '#f3f4f6',
+    borderLeftColor: AppTheme.border,
   },
   iconBtn: {
     width: 44,
     height: 44,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 8,
+    borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
-    backgroundColor: '#fafafa',
+    borderColor: AppTheme.border,
+    backgroundColor: AppTheme.cardHover,
   },
   iconBtnExam: { borderColor: 'rgba(245, 158, 11, 0.5)', backgroundColor: 'rgba(245, 158, 11, 0.06)' },
-  cardTitle: { fontSize: 16, fontWeight: '600', color: '#111', marginBottom: 4 },
-  cardMeta: { fontSize: 12, color: '#6b7280', marginBottom: 2 },
-  cardPrice: { fontSize: 14, fontWeight: '600', color: '#0d0d0d' },
+  cardTitle: { fontSize: 16, fontWeight: '600', color: AppTheme.text, marginBottom: 4 },
+  cardMeta: { fontSize: 12, color: AppTheme.textMuted, marginBottom: 2 },
+  cardPrice: { fontSize: 14, fontWeight: '600', color: AppTheme.accent },
   extra: { marginTop: 10, gap: 6 },
-  extraLine: { fontSize: 13, color: '#374151' },
-  extraStrong: { fontWeight: '800', color: '#111' },
-  progressBar: { height: 8, backgroundColor: '#e5e7eb', borderRadius: 999, overflow: 'hidden' },
-  progressFill: { height: '100%', backgroundColor: '#16a34a' },
+  extraLine: { fontSize: 13, color: AppTheme.textMuted },
+  extraStrong: { fontWeight: '800', color: AppTheme.text },
+  progressBar: { height: 8, backgroundColor: AppTheme.border, borderRadius: 999, overflow: 'hidden' },
+  progressFill: { height: '100%', backgroundColor: AppTheme.green },
   historyToggle: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 6 },
-  historyToggleText: { fontSize: 13, color: '#111', fontWeight: '700' },
+  historyToggleText: { fontSize: 13, color: AppTheme.text, fontWeight: '700' },
   historyList: { marginTop: 4, paddingLeft: 2, gap: 2 },
-  historyItem: { fontSize: 13, color: '#6b7280' },
+  historyItem: { fontSize: 13, color: AppTheme.textMuted },
   heartBtn: { padding: 8 },
   cardFav: { alignItems: 'center' },
 });

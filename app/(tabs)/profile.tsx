@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import * as FileSystem from 'expo-file-system';
@@ -16,6 +17,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { getProfile } from '@/utils/profileStore';
 import { certificates } from '@/lib/api';
 import { Image } from 'expo-image';
+import { AppTheme } from '@/constants/theme';
 
 function arrayBufferToBase64(buffer: ArrayBuffer): string {
   const bytes = new Uint8Array(buffer);
@@ -87,8 +89,9 @@ export default function ProfileScreen() {
       const canShare = await Sharing.isAvailableAsync();
       if (canShare) await Sharing.shareAsync(path);
       else Alert.alert('Файл сохранён', path);
-    } catch (e: any) {
-      Alert.alert('Ошибка', e?.message || 'Не удалось скачать сертификат');
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'Не удалось скачать сертификат';
+      Alert.alert('Ошибка', msg);
     } finally {
       setDlCourseId(null);
     }
@@ -100,13 +103,15 @@ export default function ProfileScreen() {
   return (
     <ScrollView style={styles.scroll} contentContainerStyle={styles.container}>
       <View style={styles.card}>
-        <View style={styles.avatar}>
-          {profile?.avatar ? (
+        {profile?.avatar ? (
+          <View style={styles.avatar}>
             <Image source={{ uri: profile.avatar }} style={styles.avatarImage} />
-          ) : (
+          </View>
+        ) : (
+          <LinearGradient colors={[...AppTheme.gradientBtn]} style={styles.avatar}>
             <Text style={styles.avatarText}>{initials}</Text>
-          )}
-        </View>
+          </LinearGradient>
+        )}
         <Text style={styles.name}>{displayName}</Text>
 
         <TouchableOpacity style={styles.menuBtn} onPress={() => router.push('/settings')}>
@@ -122,7 +127,7 @@ export default function ProfileScreen() {
 
       <Text style={styles.sectionTitle}>Сертификаты</Text>
       {certsLoading ? (
-        <ActivityIndicator style={{ marginVertical: 12 }} />
+        <ActivityIndicator style={{ marginVertical: 12 }} color={AppTheme.accent} />
       ) : certs.length === 0 ? (
         <Text style={styles.muted}>Сертификатов пока нет — пройдите итоговый тест курса.</Text>
       ) : (
@@ -147,14 +152,25 @@ export default function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  scroll: { flex: 1 },
+  scroll: { flex: 1, backgroundColor: 'transparent' },
   container: { padding: 24, paddingBottom: 48 },
-  card: { backgroundColor: '#fff', borderRadius: 12, padding: 24, borderWidth: 1, borderColor: '#e5e7eb', marginBottom: 24 },
+  card: {
+    backgroundColor: 'rgba(255,255,255,0.92)',
+    borderRadius: AppTheme.radius,
+    padding: 24,
+    borderWidth: 1,
+    borderColor: AppTheme.border,
+    marginBottom: 24,
+    shadowColor: AppTheme.accent,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 16,
+    elevation: 4,
+  },
   avatar: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#f97316',
     justifyContent: 'center',
     alignItems: 'center',
     alignSelf: 'center',
@@ -163,33 +179,33 @@ const styles = StyleSheet.create({
   },
   avatarImage: { width: '100%', height: '100%' },
   avatarText: { color: '#fff', fontSize: 24, fontWeight: '700' },
-  name: { fontSize: 20, fontWeight: '700', textAlign: 'center', marginBottom: 24 },
-  menuBtn: { paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#e5e7eb' },
-  menuBtnText: { fontSize: 16 },
+  name: { fontSize: 20, fontWeight: '700', textAlign: 'center', marginBottom: 24, color: AppTheme.text },
+  menuBtn: { paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: AppTheme.border },
+  menuBtnText: { fontSize: 16, color: AppTheme.text },
   logoutBtn: { borderBottomWidth: 0, marginTop: 8 },
-  logoutBtnText: { color: '#dc2626', fontSize: 16 },
-  sectionTitle: { fontSize: 17, fontWeight: '700', marginBottom: 12, color: '#111' },
-  muted: { fontSize: 14, color: '#6b7280', marginBottom: 8 },
+  logoutBtnText: { color: AppTheme.error, fontSize: 16 },
+  sectionTitle: { fontSize: 17, fontWeight: '700', marginBottom: 12, color: AppTheme.text },
+  muted: { fontSize: 14, color: AppTheme.textMuted, marginBottom: 8 },
   certCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.92)',
+    borderRadius: AppTheme.radiusSm,
     padding: 14,
     marginBottom: 10,
     borderLeftWidth: 4,
-    borderLeftColor: '#3f8cff',
+    borderLeftColor: AppTheme.accentViolet,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: AppTheme.border,
   },
   certInfo: { flex: 1, minWidth: 0 },
-  certCourse: { fontSize: 15, fontWeight: '600', color: '#111' },
-  certMeta: { fontSize: 12, color: '#6b7280', marginTop: 4 },
+  certCourse: { fontSize: 15, fontWeight: '600', color: AppTheme.text },
+  certMeta: { fontSize: 12, color: AppTheme.textMuted, marginTop: 4 },
   certDl: {
     paddingHorizontal: 14,
     paddingVertical: 8,
-    backgroundColor: '#16a34a',
-    borderRadius: 8,
+    backgroundColor: AppTheme.accent,
+    borderRadius: AppTheme.radiusSm,
   },
   certDlText: { color: '#fff', fontWeight: '700', fontSize: 14 },
 });

@@ -16,7 +16,7 @@ import * as Device from 'expo-device';
 // Реальный телефон (не эмулятор) — тогда используем IP ПК. На телефоне localhost = сам телефон.
 const USE_REAL_DEVICE = Device.isDevice;
 // Замените на IP вашего компьютера (ipconfig → IPv4-адрес). Телефон и ПК в одной Wi‑Fi.
-const YOUR_PC_IP = '192.168.0.10';
+const YOUR_PC_IP = '172.20.10.6';
 
 const getFromExpoExtra = (): string | undefined => {
   // Expo может хранить extra в разных местах (зависит от SDK/режима).

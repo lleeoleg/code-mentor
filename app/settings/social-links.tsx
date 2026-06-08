@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { getProfile, saveProfile } from '@/utils/profileStore';
+import { AppTheme } from '@/constants/theme';
 import { SOCIAL_LINK_FIELDS } from '@/constants/socialLinks';
 
 export default function SocialLinksSettingsScreen() {
@@ -84,7 +85,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   submitBtn: {
-    backgroundColor: '#0d0d0d',
+    backgroundColor: AppTheme.accent,
     paddingVertical: 14,
     borderRadius: 10,
     alignItems: 'center',

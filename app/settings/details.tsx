@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Linking } from 'react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { auth } from '@/lib/api';
+import { AppTheme } from '@/constants/theme';
 
 export default function DetailsSettingsScreen() {
   const { user } = useAuth();
@@ -88,7 +89,7 @@ const styles = StyleSheet.create({
   link: { fontSize: 16, color: '#3b82f6' },
   agreement: { fontSize: 14, color: '#4b5563', lineHeight: 22, marginBottom: 20 },
   submitBtn: {
-    backgroundColor: '#0d0d0d',
+    backgroundColor: AppTheme.accent,
     paddingVertical: 14,
     borderRadius: 10,
     alignItems: 'center',
