@@ -1,0 +1,37 @@
+.page-bg-decor {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.page-bg-decor-item {
+  position: absolute;
+  opacity: 0.22;
+  user-select: none;
+  will-change: transform;
+}
+
+.page-bg-decor-logo {
+  object-fit: contain;
+  filter: saturate(1.1);
+}
+
+.page-bg-decor-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent-violet);
+}
+
+.page-bg-decor-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+@media (max-width: 768px) {
+  .page-bg-decor-item {
+    opacity: 0.16;
+  }
+}

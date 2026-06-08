@@ -59,7 +59,7 @@
 
 .course-learn-buy-btn {
   padding: 8px 18px;
-  background: #3f8cff;
+  background: var(--accent);
   color: #fff;
   text-decoration: none;
   font-weight: 600;
@@ -69,7 +69,7 @@
   transition: background 0.15s;
   flex-shrink: 0;
 }
-.course-learn-buy-btn:hover { background: #2d7ae0; color: #fff; }
+.course-learn-buy-btn:hover { background: var(--accent-hover); color: #fff; }
 
 /* ── Body ── */
 .course-learn-body {
@@ -151,8 +151,8 @@
 }
 .course-learn-lesson-btn.active {
   background: rgba(63, 140, 255, 0.08);
-  border-left-color: #3f8cff;
-  color: #3f8cff;
+  border-left-color: var(--accent);
+  color: var(--accent);
   font-weight: 600;
 }
 .course-learn-lesson-btn.done {
@@ -182,7 +182,7 @@
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
-  color: #3f8cff;
+  color: var(--accent);
   opacity: 0.8;
 }
 
@@ -496,7 +496,7 @@
   align-items: center;
   gap: 8px;
   padding: 11px 24px;
-  background: #3f8cff;
+  background: var(--accent);
   color: #fff;
   font-weight: 600;
   border-radius: var(--radius-sm);
@@ -507,7 +507,7 @@
   font-family: inherit;
   transition: background 0.15s;
 }
-.course-learn-next-btn:hover { background: #2d7ae0; color: #fff; }
+.course-learn-next-btn:hover { background: var(--accent-hover); color: #fff; }
 
 /* ── Locked / error ── */
 .course-learn-error {
@@ -602,7 +602,7 @@
   align-items: center;
   gap: 7px;
   padding: 9px 18px;
-  background: #16a34a;
+  background: var(--gradient-btn);
   color: #fff;
   border: none;
   border-radius: var(--radius-sm);
@@ -610,9 +610,40 @@
   font-weight: 600;
   cursor: pointer;
   font-family: inherit;
-  transition: background 0.15s;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+  transition: background 0.15s, box-shadow 0.15s;
 }
-.exam-cert-btn:hover { background: #15803d; }
+.exam-cert-btn:hover {
+  background: var(--gradient-btn-hover);
+  box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4);
+}
+
+.exam-integrity-banner {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 16px;
+  margin-bottom: 14px;
+  border-radius: 10px;
+  border: 1px solid #bfdbfe;
+  background: linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%);
+}
+
+.exam-integrity-banner-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #1e40af;
+}
+
+.exam-integrity-banner-text {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: #334155;
+}
 
 .exam-error {
   margin: 12px 0;
@@ -622,6 +653,12 @@
   background: #fef2f2;
   border: 1px solid #fca5a5;
   border-radius: var(--radius-sm);
+}
+
+.exam-error--integrity {
+  border-color: #f59e0b;
+  background: #fffbeb;
+  color: #92400e;
 }
 
 /* Start block */
@@ -648,7 +685,7 @@
   align-items: center;
   gap: 7px;
   padding: 10px 22px;
-  background: #3f8cff;
+  background: var(--accent);
   color: #fff;
   border: none;
   border-radius: var(--radius-sm);
@@ -658,7 +695,7 @@
   font-family: inherit;
   transition: background 0.15s;
 }
-.exam-start-btn:hover:not(:disabled) { background: #2d7ae0; }
+.exam-start-btn:hover:not(:disabled) { background: var(--accent-hover); }
 .exam-start-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 
 /* Questions */
@@ -697,8 +734,8 @@
   color: var(--text);
   transition: border-color 0.12s, background 0.12s, color 0.12s;
 }
-.exam-choice:hover:not(:disabled) { border-color: #3f8cff; background: rgba(63,140,255,0.05); }
-.exam-choice.active  { background: #3f8cff; border-color: #3f8cff; color: #fff; }
+.exam-choice:hover:not(:disabled) { border-color: var(--accent); background: rgba(99, 102, 241, 0.08); }
+.exam-choice.active  { background: var(--accent); border-color: var(--accent); color: #fff; }
 .exam-choice.correct { background: #16a34a; border-color: #16a34a; color: #fff; }
 .exam-choice.wrong   { background: #dc2626; border-color: #dc2626; color: #fff; }
 
@@ -707,7 +744,7 @@
   align-items: center;
   gap: 7px;
   padding: 11px 24px;
-  background: #3f8cff;
+  background: var(--accent);
   color: #fff;
   border: none;
   border-radius: var(--radius-sm);
@@ -718,7 +755,7 @@
   transition: background 0.15s;
   align-self: flex-end;
 }
-.exam-submit-btn:hover:not(:disabled) { background: #2d7ae0; }
+.exam-submit-btn:hover:not(:disabled) { background: var(--accent-hover); }
 .exam-submit-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 
 @media (max-width: 992px) {

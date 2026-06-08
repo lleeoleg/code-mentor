@@ -7,6 +7,7 @@ import { getProfile } from '../utils/profileStore';
 import Footer from './Footer';
 import WhatsNewModal from './WhatsNewModal';
 import AiAssistant from './AiAssistant';
+import PageBackground from './PageBackground';
 import './Layout.css';
 
 function getInitials(profile, username) {
@@ -101,6 +102,7 @@ export default function Layout() {
 
   return (
     <div className={`layout ${isCourseLearn ? 'layout--course-learn' : ''}`}>
+      {!isCourseLearn && <PageBackground />}
       <header className="header header-dark">
         <div className="header-left">
           <Link to="/" className="header-logo">
@@ -206,7 +208,7 @@ export default function Layout() {
                 {profile?.avatar ? (
                   <img src={profile.avatar} alt="" />
                 ) : (
-                  avatarInitials
+                  <span className="header-avatar-text">{avatarInitials}</span>
                 )}
               </button>
               {avatarOpen && (

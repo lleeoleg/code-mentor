@@ -5,6 +5,7 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { getProfile } from '../utils/profileStore';
 import { SOCIAL_LINK_FIELDS, getSocialLinkUrl } from '../constants/socialLinks';
 import { activity as activityApi, certificates as certificatesApi } from '../api';
+import ActivityHeatmap from '../components/ActivityHeatmap';
 import './Profile.css';
 
 function getInitials(profile, username) {
@@ -87,7 +88,6 @@ export default function Profile() {
   const initials = getInitials(profile, user?.username);
   const displayName = getDisplayName(profile, user?.username, t('profile.userFallback'));
   const userId = getUserId(user?.username);
-  const months = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map((i) => t('profileMonths.' + i));
   const hasBio = !!(profile.shortBio?.trim() || profile.aboutMe?.trim());
 
   const socialLinksList = useMemo(() => {
@@ -98,7 +98,14 @@ export default function Profile() {
     }).map((f) => ({ field: f, url: getSocialLinkUrl(f, (links[f.id] || '').trim()) }));
   }, [profile.socialLinks]);
 
-  const [activityDates, setActivityDates] = useState([]);
+  const [activityData, setActivityData] = useState({
+    dates: [],
+    counts: {},
+    years: [],
+    currentStreak: 0,
+    longestStreak: 0,
+    tasksSolved: 0,
+  });
   const [activityLoading, setActivityLoading] = useState(true);
 
   useEffect(() => {
@@ -106,8 +113,22 @@ export default function Profile() {
       setActivityLoading(true);
       activityApi
         .get()
-        .then((data) => setActivityDates(data.dates || []))
-        .catch(() => setActivityDates([]))
+        .then((data) => setActivityData({
+          dates: data.dates || [],
+          counts: data.counts || {},
+          years: data.years || [],
+          currentStreak: data.current_streak ?? 0,
+          longestStreak: data.longest_streak ?? 0,
+          tasksSolved: data.tasks_solved ?? 0,
+        }))
+        .catch(() => setActivityData({
+          dates: [],
+          counts: {},
+          years: [],
+          currentStreak: 0,
+          longestStreak: 0,
+          tasksSolved: 0,
+        }))
         .finally(() => setActivityLoading(false));
     }
   }, [user]);
@@ -142,28 +163,6 @@ export default function Profile() {
       setCertDownloading(null);
     }
   };
-
-  const activityGrid = useMemo(() => {
-    const rows = 7;
-    const cols = 53;
-    const grid = [];
-    const activeDatesSet = new Set(activityDates);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const startDate = new Date(today);
-    startDate.setDate(startDate.getDate() - 365);
-    let startDayOfWeek = startDate.getDay();
-    startDayOfWeek = startDayOfWeek === 0 ? 6 : startDayOfWeek - 1;
-    for (let i = 0; i < startDayOfWeek; i++) grid.push(false);
-    const currentDate = new Date(startDate);
-    for (let day = 0; day < 365; day++) {
-      const dateStr = currentDate.toISOString().split('T')[0];
-      grid.push(activeDatesSet.has(dateStr));
-      currentDate.setDate(currentDate.getDate() + 1);
-    }
-    while (grid.length < rows * cols) grid.push(false);
-    return grid;
-  }, [activityDates]);
 
   return (
     <div className="page profile-page">
@@ -235,43 +234,24 @@ export default function Profile() {
 
           <section className="profile-activity">
             <h2 className="profile-activity-title">{t('profile.activity')}</h2>
-            <div className="profile-activity-card">
-              {activityLoading ? (
-                <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-                  {t('profile.loadingActivity')}
-                </div>
-              ) : (
-                <>
-                  <div className="profile-activity-grid" role="img" aria-label={t('profile.activityGridLabel')}>
-                    {activityGrid.map((active, i) => (
-                      <span
-                        key={i}
-                        className={`profile-activity-cell ${active ? 'active' : ''}`}
-                        title={active ? t('profile.startedThisDay') : t('profile.noActivity')}
-                      />
-                    ))}
-                  </div>
-                  <div className="profile-activity-months">
-                    {months.map((m, idx) => (
-                      <span key={idx} className="profile-activity-month">{m}</span>
-                    ))}
-                  </div>
-                  <p className="profile-activity-utc">{t('profile.nextDayUtc')}</p>
-                </>
-              )}
-            </div>
+            <ActivityHeatmap
+              dates={activityData.dates}
+              counts={activityData.counts}
+              years={activityData.years}
+              loading={activityLoading}
+            />
 
             <div className="profile-stats">
               <div className="profile-stat">
-                <span className="profile-stat-value">0</span>
+                <span className="profile-stat-value">{activityLoading ? '—' : activityData.currentStreak}</span>
                 <span className="profile-stat-label">{t('profile.streakDays')}</span>
               </div>
               <div className="profile-stat">
-                <span className="profile-stat-value">0</span>
+                <span className="profile-stat-value">{activityLoading ? '—' : activityData.longestStreak}</span>
                 <span className="profile-stat-label">{t('profile.streakMax')}</span>
               </div>
               <div className="profile-stat">
-                <span className="profile-stat-value">0</span>
+                <span className="profile-stat-value">{activityLoading ? '—' : activityData.tasksSolved}</span>
                 <span className="profile-stat-label">{t('profile.tasksSolved')}</span>
               </div>
             </div>

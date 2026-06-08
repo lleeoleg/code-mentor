@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { exams } from '../api';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useExamIntegrity } from '../hooks/useExamIntegrity';
 
 function downloadBlob(blob, filename) {
   const url = URL.createObjectURL(blob);
@@ -14,7 +15,7 @@ function downloadBlob(blob, filename) {
 }
 
 export default function CourseFinalExam({ courseId }) {
-  const { locale } = useLanguage();
+  const { locale, t } = useLanguage();
   const cid = useMemo(() => String(courseId || ''), [courseId]);
   const [info, setInfo] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -28,6 +29,28 @@ export default function CourseFinalExam({ courseId }) {
   const [result, setResult] = useState(null);
   const [review, setReview] = useState(null);
   const [error, setError] = useState(null);
+  const [integrityViolation, setIntegrityViolation] = useState(false);
+
+  const examInProgress = !!attemptId && !review && !submitting;
+
+  const handleIntegrityViolation = useCallback(() => {
+    setSelected({});
+    setIntegrityViolation(true);
+    setError(t('courseLearn.exam.integrityReset'));
+  }, [t]);
+
+  useExamIntegrity({ enabled: examInProgress, onViolation: handleIntegrityViolation });
+
+  useEffect(() => {
+    if (!examInProgress) return undefined;
+    const onBeforeUnload = (e) => {
+      e.preventDefault();
+      e.returnValue = t('courseLearn.exam.leaveWarning');
+      return e.returnValue;
+    };
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => window.removeEventListener('beforeunload', onBeforeUnload);
+  }, [examInProgress, t]);
 
   const refreshInfo = () =>
     exams
@@ -81,6 +104,7 @@ export default function CourseFinalExam({ courseId }) {
       setSelected({});
       setResult(null);
       setReview(null);
+      setIntegrityViolation(false);
     } catch (e) {
       const status = e?.response?.status;
       const data = e?.response?.data;
@@ -218,7 +242,23 @@ export default function CourseFinalExam({ courseId }) {
         </div>
       )}
 
-      {error && <div className="exam-error">{error}</div>}
+      {examInProgress && (
+        <div className="exam-integrity-banner">
+          <div className="exam-integrity-banner-title">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+            </svg>
+            {t('courseLearn.exam.integrityTitle')}
+          </div>
+          <p className="exam-integrity-banner-text">{t('courseLearn.exam.integrityPolicy')}</p>
+        </div>
+      )}
+
+      {error && (
+        <div className={`exam-error${integrityViolation ? ' exam-error--integrity' : ''}`}>
+          {error}
+        </div>
+      )}
 
       {!attemptId ? (
         <div className="exam-start">
@@ -259,7 +299,12 @@ export default function CourseFinalExam({ courseId }) {
                         key={c.id}
                         type="button"
                         className={['exam-choice', active ? 'active' : '', isCorrectChoice ? 'correct' : '', isSelectedWrong ? 'wrong' : '', isSelectedCorrect ? 'correct' : ''].filter(Boolean).join(' ')}
-                        onClick={() => !locked && setSelected((p) => ({ ...p, [q.id]: c.id }))}
+                        onClick={() => {
+                          if (locked) return;
+                          setIntegrityViolation(false);
+                          setError(null);
+                          setSelected((p) => ({ ...p, [q.id]: c.id }));
+                        }}
                         disabled={locked}
                       >
                         {c.text}

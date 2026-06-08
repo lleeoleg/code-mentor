@@ -1,23 +1,32 @@
-@import url('https://fonts.googleapis.com/css2?family=Source+Sans+3:ital,wght@0;300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap');
 
 :root {
-  --bg: #ffffff;
-  --bg-alt: #f7f8fa;
+  --bg: #f4f3ff;
+  --bg-alt: #ede9fe;
   --bg-card: #ffffff;
-  --bg-card-hover: #f7f8fa;
-  --text: #1a1a1a;
-  --text-muted: #6b7280;
-  --accent: #3f8cff;
-  --accent-hover: #2d7ae0;
-  --border: #e5e7eb;
-  --error: #dc2626;
-  --radius: 12px;
-  --radius-sm: 8px;
-  --font: 'Source Sans 3', system-ui, sans-serif;
-  --shadow: 0 1px 3px rgba(0,0,0,0.08);
-  --shadow-card: 0 2px 8px rgba(0,0,0,0.06);
-  --green: #22c55e;
-  --green-hover: #16a34a;
+  --bg-card-hover: #faf5ff;
+  --text: #1e1b4b;
+  --text-muted: #64748b;
+  --accent: #6366f1;
+  --accent-hover: #4f46e5;
+  --accent-pink: #ec4899;
+  --accent-cyan: #06b6d4;
+  --accent-orange: #f97316;
+  --accent-violet: #8b5cf6;
+  --border: #e0e7ff;
+  --error: #ef4444;
+  --radius: 14px;
+  --radius-sm: 10px;
+  --font: 'Plus Jakarta Sans', system-ui, sans-serif;
+  --shadow: 0 4px 16px rgba(99, 102, 241, 0.1);
+  --shadow-card: 0 8px 32px rgba(99, 102, 241, 0.14);
+  --green: #10b981;
+  --green-hover: #059669;
+  --gradient-page: linear-gradient(160deg, #eef2ff 0%, #fdf4ff 45%, #ecfeff 100%);
+  --gradient-hero: linear-gradient(135deg, rgba(99, 102, 241, 0.12) 0%, rgba(236, 72, 153, 0.1) 50%, rgba(6, 182, 212, 0.1) 100%);
+  --gradient-btn: linear-gradient(135deg, #6366f1 0%, #8b5cf6 55%, #a855f7 100%);
+  --gradient-btn-hover: linear-gradient(135deg, #4f46e5 0%, #7c3aed 55%, #9333ea 100%);
+  --header-gradient: linear-gradient(135deg, #4338ca 0%, #6366f1 45%, #a855f7 100%);
 }
 
 * {
@@ -30,7 +39,8 @@ body {
   font-family: var(--font);
   font-weight: 400;
   color: var(--text);
-  background: var(--bg);
+  background: var(--gradient-page);
+  background-attachment: fixed;
   -webkit-font-smoothing: antialiased;
   line-height: 1.5;
 }
@@ -56,7 +66,7 @@ input {
   padding: 12px 16px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--border);
-  background: var(--bg);
+  background: rgba(255, 255, 255, 0.9);
   color: var(--text);
   font-size: 1rem;
   transition: border-color 0.2s;
@@ -86,22 +96,24 @@ input:focus {
   transform: scale(0.98);
 }
 .btn-primary {
-  background: #0d0d0d;
+  background: var(--gradient-btn);
   color: #fff;
+  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);
 }
 .btn-primary:hover {
-  background: #252525;
+  background: var(--gradient-btn-hover);
   color: #fff;
+  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.45);
 }
 .btn-ghost {
-  background: transparent;
-  color: #0d0d0d;
-  border: 1px solid #0d0d0d;
+  background: rgba(255, 255, 255, 0.7);
+  color: var(--accent);
+  border: 2px solid var(--accent);
 }
 .btn-ghost:hover {
-  background: #0d0d0d;
+  background: var(--accent);
   color: #fff;
-  border-color: #0d0d0d;
+  border-color: var(--accent);
 }
 
 .page {
@@ -248,7 +260,7 @@ input:focus {
 .course-card-square .course-card-top {
   flex: 0 0 auto;
   height: 120px;
-  background: #f3f4f6;
+  background: linear-gradient(135deg, #eef2ff 0%, #fce7f3 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -334,8 +346,8 @@ input:focus {
   position: relative;
   padding: 56px 24px 48px;
   text-align: center;
-  border-bottom: 1px solid var(--border);
   overflow: hidden;
+  background: transparent;
 }
 /* Карточка вебинара: прозрачная с тонкими рамками и декором */
 .hero-webinar-card {
@@ -344,7 +356,8 @@ input:focus {
   z-index: 0;
   margin-bottom: 24px;
   padding: 20px 24px 20px 28px;
-  background: transparent;
+  background: rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(8px);
   border-radius: var(--radius);
   text-decoration: none;
   color: inherit;
@@ -372,13 +385,13 @@ input:focus {
   transform: translateY(-50%);
   width: 48px;
   height: 48px;
-  background: radial-gradient(circle at 30% 30%, rgba(63, 140, 255, 0.12) 0%, transparent 70%);
+  background: radial-gradient(circle at 30% 30%, rgba(139, 92, 246, 0.2) 0%, transparent 70%);
   border-radius: 50%;
   pointer-events: none;
 }
 .hero-webinar-card:hover {
   border-color: var(--accent);
-  box-shadow: 0 0 0 1px rgba(63, 140, 255, 0.2);
+  box-shadow: 0 4px 20px rgba(99, 102, 241, 0.2);
 }
 .hero-webinar-label {
   display: block;
@@ -458,28 +471,29 @@ input:focus {
 .filter-chip {
   padding: 8px 14px;
   border-radius: 999px;
-  border: 1px solid #0d0d0d;
-  background: transparent;
-  color: #0d0d0d;
+  border: 2px solid var(--border);
+  background: rgba(255, 255, 255, 0.8);
+  color: var(--text-muted);
   font-size: 0.9rem;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
-  transition: background 0.2s, color 0.2s, border-color 0.2s;
+  transition: background 0.2s, color 0.2s, border-color 0.2s, box-shadow 0.2s;
 }
 .filter-chip:hover {
-  background: #0d0d0d;
-  color: #fff;
-  border-color: #0d0d0d;
+  background: #fff;
+  color: var(--accent);
+  border-color: var(--accent);
+  box-shadow: var(--shadow);
 }
 .filter-chip.active {
-  background: #0d0d0d;
+  background: var(--gradient-btn);
   color: #fff;
-  border-color: #0d0d0d;
+  border-color: transparent;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35);
 }
 .filter-chip.active:hover {
-  background: #252525;
+  background: var(--gradient-btn-hover);
   color: #fff;
-  border-color: #252525;
 }
 
 .back-link {
@@ -614,11 +628,12 @@ input:focus {
 }
 
 .cd-btn-primary {
-  background: #3f8cff;
+  background: var(--gradient-btn);
   color: #fff;
+  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.3);
 }
 .cd-btn-primary:hover {
-  background: #2d7ae0;
+  background: var(--gradient-btn-hover);
 }
 
 .cd-btn-outline {
@@ -764,15 +779,16 @@ input:focus {
 }
 
 .my-learning-enrolled-list .btn-primary {
-  background: #3f8cff;
+  background: var(--gradient-btn);
   color: #fff;
   font-size: 0.9rem;
   padding: 9px 20px;
   border-radius: var(--radius-sm);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
 }
 
 .my-learning-enrolled-list .btn-primary:hover {
-  background: #2d7ae0;
+  background: var(--gradient-btn-hover);
   color: #fff;
 }
 
@@ -848,7 +864,7 @@ input:focus {
   bottom: calc(100% + 8px);
   left: 50%;
   transform: translateX(-50%) translateY(4px);
-  background: #111827;
+  background: var(--text);
   color: #fff;
   font-size: 0.75rem;
   font-weight: 500;
@@ -868,7 +884,7 @@ input:focus {
   left: 50%;
   transform: translateX(-50%) translateY(4px);
   border: 5px solid transparent;
-  border-top-color: #111827;
+  border-top-color: var(--text);
   pointer-events: none;
   opacity: 0;
   transition: opacity 0.15s, transform 0.15s;

@@ -100,6 +100,12 @@ const ru = {
     examModule: 'Финальный тест',
     examLesson: 'Итоговое тестирование',
     videoSummaryHeading: 'О чём этот урок',
+    exam: {
+      integrityTitle: 'Академическая честность',
+      integrityPolicy: 'Не переключайте вкладку, не сворачивайте браузер и не открывайте другие программы поверх окна. При нарушении все выбранные ответы сбрасываются.',
+      integrityReset: 'Ответы сброшены: вы покинули страницу теста (другая вкладка, свёрнутое окно или потеря фокуса).',
+      leaveWarning: 'Тест ещё не отправлен. Если уйдёте со страницы, ответы могут быть сброшены.',
+    },
   },
   myLearning: {
     title: 'Моё обучение',
@@ -157,7 +163,15 @@ const ru = {
     loadingActivity: 'Загрузка активности...',
     activityGridLabel: 'Сетка активности по дням',
     startedThisDay: 'Начал обучение в этот день',
+    startedCourses: 'Начато курсов: {{count}}',
     noActivity: 'Нет активности',
+    contributionsSummary: '{{count}} начала курсов в {{year}}',
+    activityLess: 'Меньше',
+    activityMore: 'Больше',
+    yearNav: 'Выбор года',
+    dayMon: 'пн',
+    dayWed: 'ср',
+    dayFri: 'пт',
     nextDayUtc: 'Следующий день в 00:00 UTC',
     streakDays: 'дней без перерыва',
     streakMax: 'день без перерыва (макс.)',
@@ -166,6 +180,7 @@ const ru = {
     downloadPdf: 'Скачать PDF',
   },
   profileMonths: ['янв.', 'февр.', 'март', 'апр.', 'май', 'июнь', 'июль', 'авг.', 'сент.', 'окт.', 'нояб.', 'дек.'],
+  profileMonthsShort: ['янв', 'фев', 'мар', 'апр', 'май', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'],
   settings: {
     profile: 'Профиль',
     settings: 'Настройки',
@@ -424,6 +439,12 @@ const en = {
     examModule: 'Final exam',
     examLesson: 'Final test',
     videoSummaryHeading: 'What this lesson covers',
+    exam: {
+      integrityTitle: 'Academic integrity',
+      integrityPolicy: 'Do not switch tabs, minimize the browser, or open other apps on top of this window. If you leave the page, all selected answers are reset.',
+      integrityReset: 'Answers reset: you left the test page (another tab, minimized window, or lost focus).',
+      leaveWarning: 'The test has not been submitted yet. If you leave this page, your answers may be reset.',
+    },
   },
   myLearning: {
     title: 'My learning',
@@ -481,7 +502,15 @@ const en = {
     loadingActivity: 'Loading activity...',
     activityGridLabel: 'Activity grid by day',
     startedThisDay: 'Started learning on this day',
+    startedCourses: '{{count}} courses started',
     noActivity: 'No activity',
+    contributionsSummary: '{{count}} course starts in {{year}}',
+    activityLess: 'Less',
+    activityMore: 'More',
+    yearNav: 'Select year',
+    dayMon: 'Mon',
+    dayWed: 'Wed',
+    dayFri: 'Fri',
     nextDayUtc: 'Next day at 00:00 UTC',
     streakDays: 'day streak',
     streakMax: 'longest streak (days)',
@@ -490,6 +519,7 @@ const en = {
     downloadPdf: 'Download PDF',
   },
   profileMonths: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+  profileMonthsShort: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
   settings: {
     profile: 'Profile',
     settings: 'Settings',
@@ -658,7 +688,13 @@ function get(obj, path) {
   return current != null ? current : path;
 }
 
-export function translate(locale, key) {
+export function translate(locale, key, params) {
   const dict = translations[locale] || translations.ru;
-  return get(dict, key) || key;
+  let text = get(dict, key) || key;
+  if (params && typeof text === 'string') {
+    Object.entries(params).forEach(([k, v]) => {
+      text = text.replace(new RegExp(`\\{\\{${k}\\}\\}`, 'g'), String(v));
+    });
+  }
+  return text;
 }

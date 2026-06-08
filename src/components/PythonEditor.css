@@ -107,13 +107,13 @@
 }
 
 .py-editor-btn--run {
-  background: #3f8cff;
+  background: var(--accent);
   color: #fff;
   min-width: 110px;
   justify-content: center;
 }
 .py-editor-btn--run:hover:not(:disabled) {
-  background: #2d7ae0;
+  background: var(--accent-hover);
 }
 .py-editor-btn--run:disabled {
   opacity: 0.6;

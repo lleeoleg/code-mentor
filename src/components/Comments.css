@@ -8,7 +8,7 @@
   font-size: 20px;
   font-weight: 600;
   margin-bottom: 20px;
-  color: #111827;
+  color: var(--text);
 }
 
 .comments-form {
@@ -132,7 +132,7 @@
 
 .comment-author {
   font-weight: 600;
-  color: #111827;
+  color: var(--text);
   font-size: 15px;
 }
 

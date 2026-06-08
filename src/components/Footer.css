@@ -1,6 +1,6 @@
 .footer {
-  background: #f9fafb;
-  border-top: 1px solid #e5e7eb;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.6) 0%, rgba(237, 233, 254, 0.9) 100%);
+  border-top: 1px solid var(--border);
   margin-top: auto;
 }
 
@@ -16,7 +16,7 @@
   grid-template-columns: 2fr 1fr 1fr 1fr;
   gap: 32px 48px;
   padding-bottom: 28px;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--border);
 }
 
 /* Brand column */
@@ -29,14 +29,14 @@
 .footer-logo {
   font-size: 1.05rem;
   font-weight: 700;
-  color: #111827;
+  color: var(--text);
   letter-spacing: -0.01em;
 }
 
 .footer-tagline {
   margin: 0;
   font-size: 0.82rem;
-  color: #9ca3af;
+  color: var(--text-muted);
   line-height: 1.5;
 }
 
@@ -45,14 +45,14 @@
   align-items: center;
   gap: 5px;
   font-size: 0.84rem;
-  color: #6b7280;
+  color: var(--text-muted);
   text-decoration: none;
   margin-top: 4px;
   transition: color 0.15s;
 }
 
 .footer-email:hover {
-  color: #111827;
+  color: var(--text);
 }
 
 /* Nav columns */
@@ -66,7 +66,7 @@
   margin: 0 0 2px;
   font-size: 0.78rem;
   font-weight: 600;
-  color: #9ca3af;
+  color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
@@ -79,13 +79,13 @@
 
 .footer-nav-list a {
   font-size: 0.88rem;
-  color: #6b7280;
+  color: var(--text-muted);
   text-decoration: none;
   transition: color 0.15s;
 }
 
 .footer-nav-list a:hover {
-  color: #111827;
+  color: var(--text);
 }
 
 /* Social column */
@@ -94,13 +94,13 @@
   align-items: center;
   gap: 7px;
   font-size: 0.88rem;
-  color: #6b7280;
+  color: var(--text-muted);
   text-decoration: none;
   transition: color 0.15s;
 }
 
 .footer-social-item:hover {
-  color: #111827;
+  color: var(--text);
 }
 
 /* Bottom bar */
@@ -111,7 +111,7 @@
 .footer-copy {
   margin: 0;
   font-size: 0.8rem;
-  color: #9ca3af;
+  color: var(--text-muted);
 }
 
 /* Responsive */

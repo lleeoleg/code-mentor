@@ -31,7 +31,7 @@ export function LanguageProvider({ children }) {
   }, []);
 
   const t = useCallback(
-    (key) => translate(locale, key),
+    (key, params) => translate(locale, key, params),
     [locale]
   );
 
