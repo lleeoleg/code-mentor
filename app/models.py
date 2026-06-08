@@ -22,7 +22,6 @@ class Course(models.Model):
         choices=Level.choices,
         default=Level.ALL,
     )
-    # Если цена задана и > 0 — курс платный (с сертификатом). Если null или 0 — бесплатный.
     price = models.DecimalField(
         'Цена',
         max_digits=10,

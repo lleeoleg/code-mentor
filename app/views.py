@@ -454,60 +454,16 @@ class CourseCertificatePdfView(generics.GenericAPIView):
         if not cert:
             return Response({'detail': 'Сертификат не найден.'}, status=status.HTTP_404_NOT_FOUND)
 
-        # PDF: делаем картинку Pillow и сохраняем в PDF (без внешних зависимостей).
-        from PIL import Image, ImageDraw, ImageFont
-
-        width, height = 1654, 1169  # примерно A4 landscape при 150dpi
-        img = Image.new('RGB', (width, height), color=(248, 250, 252))
-        draw = ImageDraw.Draw(img)
-
-        # Пытаемся взять системный шрифт; если нет — Pillow default.
-        def load_font(size: int):
-            try:
-                return ImageFont.truetype('arial.ttf', size)
-            except Exception:
-                return ImageFont.load_default()
-
-        title_font = load_font(72)
-        name_font = load_font(56)
-        text_font = load_font(34)
-        small_font = load_font(28)
-
-        # Рамка
-        margin = 60
-        draw.rectangle([margin, margin, width - margin, height - margin], outline=(30, 41, 59), width=6)
-
-        # Заголовки
-        draw.text((width // 2, 140), 'CERTIFICATE OF COMPLETION', fill=(15, 23, 42), anchor='mm', font=title_font)
-        draw.text((width // 2, 240), 'This certifies that', fill=(55, 65, 81), anchor='mm', font=text_font)
+        from .certificate_pdf import render_certificate_pdf
 
         full_name = certificate_holder_name(request.user)
         display_title = (getattr(course, 'title_en', '') or '').strip() or course.title
-        draw.text((width // 2, 340), full_name, fill=(17, 24, 39), anchor='mm', font=name_font)
-
-        draw.text((width // 2, 430), 'has successfully passed the final exam for', fill=(55, 65, 81), anchor='mm', font=text_font)
-        draw.text((width // 2, 505), f'Module: {display_title}', fill=(17, 24, 39), anchor='mm', font=text_font)
-
-        date_str = cert.issued_at.strftime('%Y-%m-%d')
-        draw.text((width // 2, 610), f'Date: {date_str}', fill=(55, 65, 81), anchor='mm', font=text_font)
-
-        # Печать (простая)
-        seal_center = (width - 260, height - 240)
-        seal_r = 120
-        draw.ellipse(
-            [seal_center[0] - seal_r, seal_center[1] - seal_r, seal_center[0] + seal_r, seal_center[1] + seal_r],
-            outline=(220, 38, 38),
-            width=10,
+        pdf_bytes = render_certificate_pdf(
+            holder_name=full_name,
+            course_title=display_title,
+            issued_at=cert.issued_at.strftime('%Y-%m-%d'),
+            certificate_number=cert.certificate_number,
         )
-        draw.text(seal_center, 'CODEMENTOR\nSEAL', fill=(220, 38, 38), anchor='mm', font=small_font, align='center')
-
-        # Номер сертификата
-        draw.text((margin + 10, height - margin - 30), f'Certificate No: {cert.certificate_number}', fill=(55, 65, 81), anchor='ls', font=small_font)
-
-        buf = BytesIO()
-        img.save(buf, format='PDF')
-        pdf_bytes = buf.getvalue()
-        buf.close()
 
         from django.http import HttpResponse
 
@@ -522,10 +478,16 @@ class CreateCheckoutSessionView(generics.GenericAPIView):
     permission_classes = (IsAuthenticated,)
 
     def post(self, request, pk):
-        import stripe
+        try:
+            import stripe
+        except ImportError:
+            return Response(
+                {'detail': 'Модуль Stripe не установлен на сервере. Выполните: pip install stripe'},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
         from django.conf import settings as django_settings
 
-        secret = getattr(django_settings, 'STRIPE_SECRET_KEY', None)
+        secret = (getattr(django_settings, 'STRIPE_SECRET_KEY', None) or '').strip()
         if not secret:
             return Response(
                 {'detail': 'Оплата не настроена (Stripe).'},
@@ -539,13 +501,9 @@ class CreateCheckoutSessionView(generics.GenericAPIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
         price_float = float(price)
-        is_power_bi = 'Power BI' in (course.title or '')
-        if is_power_bi:
-            currency = 'kzt'
-            unit_amount = int(price_float * 100)
-        else:
-            currency = 'rub'
-            unit_amount = int(price_float * 100)
+        # Цены на сайте в тенге (₸). В Stripe KZT передаётся в тиынах (1 ₸ = 100).
+        currency = getattr(django_settings, 'STRIPE_CURRENCY', 'kzt') or 'kzt'
+        unit_amount = int(round(price_float * 100))
         if unit_amount <= 0:
             return Response(
                 {'detail': 'Некорректная цена курса.'},
@@ -747,29 +705,82 @@ class LessonProgressSyncView(generics.GenericAPIView):
 
 
 class UserActivityView(generics.GenericAPIView):
-    """Активность пользователя: даты записей на курсы за последний год."""
+    """Активность пользователя: даты начала курсов за последний год + статистика."""
     permission_classes = (IsAuthenticated,)
 
     def get(self, request):
-        from datetime import datetime, timedelta
+        from collections import Counter
+        from datetime import timedelta
         from django.utils import timezone
-        
-        # Получаем дату год назад
+
         one_year_ago = timezone.now() - timedelta(days=365)
-        
-        # Получаем все записи на курсы за последний год
+
         enrollments = Enrollment.objects.filter(
             user=request.user,
-            enrolled_at__gte=one_year_ago
         ).values_list('enrolled_at', flat=True)
-        
-        # Преобразуем даты в строки формата YYYY-MM-DD для удобства на фронтенде
-        activity_dates = [
-            dt.date().isoformat() if hasattr(dt, 'date') else dt.isoformat()[:10]
-            for dt in enrollments
+
+        counts = Counter()
+        for dt in enrollments:
+            key = timezone.localtime(dt).date().isoformat()
+            counts[key] += 1
+
+        activity_dates = sorted(counts.keys())
+        years = sorted({int(d[:4]) for d in activity_dates}, reverse=True)
+        if not years:
+            years = [timezone.localdate().year]
+
+        recent_dates = [
+            d for d in activity_dates
+            if d >= (timezone.localdate() - timedelta(days=365)).isoformat()
         ]
-        
-        return Response({'dates': activity_dates})
+        current_streak, longest_streak = _activity_streaks(recent_dates)
+
+        tasks_solved = LessonCompletion.objects.filter(
+            user=request.user,
+            completed_at__gte=one_year_ago,
+        ).count()
+
+        return Response({
+            'dates': activity_dates,
+            'counts': dict(counts),
+            'years': years,
+            'current_streak': current_streak,
+            'longest_streak': longest_streak,
+            'tasks_solved': tasks_solved,
+        })
+
+
+def _activity_streaks(activity_dates: list[str]) -> tuple[int, int]:
+    from datetime import date, timedelta
+
+    if not activity_dates:
+        return 0, 0
+
+    date_set = set(activity_dates)
+    today = timezone.localdate()
+
+    current = 0
+    cursor = today
+    if cursor.isoformat() not in date_set:
+        cursor = today - timedelta(days=1)
+    while cursor.isoformat() in date_set:
+        current += 1
+        cursor = cursor - timedelta(days=1)
+
+    longest = 1
+    streak = 1
+    sorted_dates = sorted(date_set)
+    for i in range(1, len(sorted_dates)):
+        prev = date.fromisoformat(sorted_dates[i - 1])
+        cur = date.fromisoformat(sorted_dates[i])
+        if (cur - prev).days == 1:
+            streak += 1
+            longest = max(longest, streak)
+        else:
+            streak = 1
+    longest = max(longest, 1)
+
+    return current, longest
 
 
 class LessonCommentsView(generics.ListAPIView):
