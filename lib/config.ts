@@ -2,10 +2,12 @@
  * Адрес API backend.
  *
  * На реальном телефоне localhost не работает — нужен IP вашего ПК.
- * 1. В cmd: ipconfig → найдите "IPv4-адрес" (например 192.168.1.100).
- * 2. Подставьте его ниже в YOUR_PC_IP или в .env: EXPO_PUBLIC_API_URL=http://ВАШ_IP:8000/api
+ * 1. В cmd: ipconfig → IPv4 у адаптера «Беспроводная сеть» / Ethernet (часто 192.168.x.x).
+ *    Не используйте vEthernet/WSL/Docker (172.18.x.x) — телефон по Wi‑Fi туда не ходит.
+ * 2. Только http:// — Django runserver не отдаёт HTTPS на :8000.
+ *    EXPO_PUBLIC_API_URL=http://ВАШ_IP:8000/api
  * 3. Backend: python manage.py runserver 0.0.0.0:8000
- * 4. Телефон и ПК — в одной Wi‑Fi.
+ * 4. Телефон и ПК — в одной Wi‑Fi; при необходимости откройте порт 8000 в брандмауэре Windows.
  */
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
@@ -14,7 +16,7 @@ import * as Device from 'expo-device';
 // Реальный телефон (не эмулятор) — тогда используем IP ПК. На телефоне localhost = сам телефон.
 const USE_REAL_DEVICE = Device.isDevice;
 // Замените на IP вашего компьютера (ipconfig → IPv4-адрес). Телефон и ПК в одной Wi‑Fi.
-const YOUR_PC_IP = '192.168.0.18';
+const YOUR_PC_IP = '192.168.0.10';
 
 const getFromExpoExtra = (): string | undefined => {
   // Expo может хранить extra в разных местах (зависит от SDK/режима).
@@ -29,7 +31,11 @@ const getApiBase = (): string => {
   const fromExtra = getFromExpoExtra();
   const raw = (fromEnv && String(fromEnv).startsWith('http')) ? String(fromEnv) : (fromExtra || '');
   if (raw && String(raw).startsWith('http')) {
-    const url = String(raw).trim();
+    let url = String(raw).trim();
+    // Django runserver на :8000 без TLS — https ломает подключение.
+    if (/^https:\/\/[^:]+:8000\b/i.test(url)) {
+      url = url.replace(/^https:/i, 'http:');
+    }
     return url.endsWith('/api') ? url : url.endsWith('/') ? url + 'api' : url + '/api';
   }
   if (__DEV__) {

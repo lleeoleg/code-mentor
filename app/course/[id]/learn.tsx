@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, ScrollView, TextInput } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, ScrollView, TextInput, useWindowDimensions } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
@@ -22,8 +22,9 @@ type LessonDetail = {
   id: number;
   title: string;
   order: number;
-  content_type: 'video' | 'text';
+  content_type: 'video' | 'text' | 'code';
   content: string;
+  video_summary?: string;
   is_free: boolean;
   locked?: boolean;
   detail?: string;
@@ -34,6 +35,128 @@ const HEADER_H = 52;
 
 function stripHtml(s: string): string {
   return String(s || '').replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').trim();
+}
+
+type PythonLessonJson = {
+  description?: string;
+  starter_code?: string;
+  hint?: string;
+};
+
+function parsePythonLesson(raw: string): PythonLessonJson | null {
+  try {
+    const v = JSON.parse(String(raw || ''));
+    if (v && typeof v === 'object') return v as PythonLessonJson;
+  } catch {
+    /* не JSON — старый формат */
+  }
+  return null;
+}
+
+/** Встроенный редактор: задание + Skulpt (Python в браузерном движке WebView). */
+function CodeLessonWebView({ jsonString }: { jsonString: string }) {
+  const { height: winH } = useWindowDimensions();
+  const parsed = useMemo(() => parsePythonLesson(jsonString), [jsonString]);
+  const html = useMemo(() => {
+    if (!parsed) return '';
+    const desc = parsed.description ?? '';
+    const starter = parsed.starter_code ?? '';
+    const hint = parsed.hint ?? '';
+    return `<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <script src="https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt-stdlib.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 12px; background: #f8fafc; color: #111; }
+    #desc { font-size: 15px; line-height: 1.5; margin-bottom: 12px; }
+    #desc code { background: #e5e7eb; padding: 2px 6px; border-radius: 4px; font-size: 14px; }
+    #desc ol { padding-left: 1.25rem; margin: 8px 0; }
+    #desc li { margin: 6px 0; }
+    textarea#code {
+      width: 100%; min-height: 200px; font-family: ui-monospace, Menlo, monospace; font-size: 14px;
+      padding: 12px; border: 1px solid #e5e7eb; border-radius: 10px; background: #fff;
+    }
+    .row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; align-items: center; }
+    button {
+      background: #0d0d0d; color: #fff; border: none; padding: 12px 18px; border-radius: 10px;
+      font-size: 15px; font-weight: 700;
+    }
+    button.secondary { background: #e5e7eb; color: #111; }
+    #hint {
+      display: none; margin-top: 10px; padding: 10px; background: #fef9c3; border-radius: 10px; font-size: 14px; color: #713f12;
+    }
+    #hint.show { display: block; }
+    #out {
+      margin-top: 12px; white-space: pre-wrap; background: #111; color: #e5e5e5; padding: 12px; border-radius: 10px;
+      min-height: 100px; font-size: 14px; font-family: ui-monospace, Menlo, monospace;
+    }
+  </style>
+</head>
+<body>
+  <div id="desc"></div>
+  <textarea id="code" spellcheck="false" autocapitalize="off" autocomplete="off"></textarea>
+  <div class="row">
+    <button type="button" onclick="runPy()">▶ Запустить</button>
+    <button type="button" class="secondary" onclick="toggleHint()">Подсказка</button>
+  </div>
+  <div id="hint"></div>
+  <div id="out"></div>
+  <script>
+    var HINT = ${JSON.stringify(hint)};
+    document.getElementById('desc').innerHTML = ${JSON.stringify(desc)};
+    document.getElementById('code').value = ${JSON.stringify(starter)};
+    if (HINT) document.getElementById('hint').textContent = HINT;
+    function toggleHint() {
+      var h = document.getElementById('hint');
+      if (!HINT) return;
+      h.classList.toggle('show');
+    }
+    function builtinRead(x) {
+      if (Sk.builtinFiles === undefined || Sk.builtinFiles["files"][x] === undefined)
+        throw "File not found: " + x;
+      return Sk.builtinFiles["files"][x];
+    }
+    function runPy() {
+      var out = document.getElementById('out');
+      out.textContent = '';
+      var prog = document.getElementById('code').value;
+      Sk.configure({ output: function (t) { out.textContent += t; }, read: builtinRead });
+      Sk.TurtleGraphics = { target: null };
+      try {
+        Sk.importMainWithBody("<stdin>", false, prog, true);
+      } catch (e) {
+        out.textContent += "\\n" + (e && e.toString ? e.toString() : String(e));
+      }
+    }
+  </script>
+</body>
+</html>`;
+  }, [parsed]);
+
+  if (!parsed) {
+    return (
+      <Text style={styles.lessonText}>
+        {stripHtml(jsonString) || 'Нет данных для редактора. Ожидается JSON (description, starter_code).'}
+      </Text>
+    );
+  }
+
+  const h = Math.min(Math.max(winH * 0.62, 420), 720);
+
+  return (
+    <WebView
+      originWhitelist={['*']}
+      source={{ html }}
+      style={{ width: '100%', height: h, backgroundColor: '#f8fafc' }}
+      javaScriptEnabled
+      domStorageEnabled
+      automaticallyAdjustContentInsets={false}
+    />
+  );
 }
 
 function getVideoUri(raw: string): string {
@@ -223,19 +346,29 @@ export default function CourseLearnScreen() {
               <ScrollView contentContainerStyle={styles.lessonContent} showsVerticalScrollIndicator={false}>
                 <Text style={styles.lessonTitle}>{currentLesson.title}</Text>
                 {currentLesson.content_type === 'video' && currentLesson.content ? (
-                  <View style={styles.videoWrap}>
-                    <WebView
-                      source={{ uri: getVideoUri(currentLesson.content) }}
-                      style={styles.video}
-                      allowsFullscreenVideo
-                      allowsInlineMediaPlayback
-                      javaScriptEnabled
-                      domStorageEnabled
-                      originWhitelist={['*']}
-                      mediaPlaybackRequiresUserAction={false}
-                      onError={() => setVideoError(true)}
-                    />
+                  <View>
+                    <View style={styles.videoWrap}>
+                      <WebView
+                        source={{ uri: getVideoUri(currentLesson.content) }}
+                        style={styles.video}
+                        allowsFullscreenVideo
+                        allowsInlineMediaPlayback
+                        javaScriptEnabled
+                        domStorageEnabled
+                        originWhitelist={['*']}
+                        mediaPlaybackRequiresUserAction={false}
+                        onError={() => setVideoError(true)}
+                      />
+                    </View>
+                    {currentLesson.video_summary ? (
+                      <View style={styles.videoSummary}>
+                        <Text style={styles.videoSummaryTitle}>О чём этот урок</Text>
+                        <Text style={styles.videoSummaryText}>{currentLesson.video_summary}</Text>
+                      </View>
+                    ) : null}
                   </View>
+                ) : currentLesson.content_type === 'code' && currentLesson.content ? (
+                  <CodeLessonWebView jsonString={currentLesson.content} />
                 ) : (
                   <Text style={styles.lessonText}>{stripHtml(currentLesson.content || '') || 'Нет контента.'}</Text>
                 )}
@@ -366,8 +499,19 @@ const styles = StyleSheet.create({
   lessonContent: { padding: 16, paddingBottom: 32 },
   lessonTitle: { fontSize: 18, fontWeight: '800', color: '#111', marginBottom: 12 },
   lessonText: { fontSize: 15, lineHeight: 22, color: '#111' },
-  videoWrap: { width: '100%', aspectRatio: 16 / 9, borderRadius: 12, overflow: 'hidden', backgroundColor: '#000', marginBottom: 12 },
+  videoWrap: { width: '100%', aspectRatio: 16 / 9, borderRadius: 12, overflow: 'hidden', backgroundColor: '#000' },
   video: { flex: 1 },
+  videoSummary: {
+    marginTop: 14,
+    marginBottom: 12,
+    padding: 14,
+    backgroundColor: '#f8fafc',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  videoSummaryTitle: { fontSize: 14, fontWeight: '800', color: '#0f172a', marginBottom: 8 },
+  videoSummaryText: { fontSize: 15, lineHeight: 22, color: '#475569' },
   footerRow: { marginTop: 18 },
   nextBtn: { backgroundColor: '#0ea5e9', paddingVertical: 12, borderRadius: 10, alignItems: 'center' },
   nextBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },

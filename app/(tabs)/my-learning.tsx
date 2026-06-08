@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Link } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useFavorites } from '@/contexts/FavoritesContext';
@@ -10,7 +10,7 @@ import { useLessonProgress } from '@/contexts/LessonProgressContext';
 
 export default function MyLearningScreen() {
   const { favorites, removeFavorite } = useFavorites();
-  const { startedCourses } = useMyLearning();
+  const { enrolledList, loading: enrollmentsLoading, refreshEnrollments } = useMyLearning();
   const { getCompletedLessonIds } = useLessonProgress();
 
   const [curriculumByCourse, setCurriculumByCourse] = useState<Record<string, any[]>>({});
@@ -25,19 +25,19 @@ export default function MyLearningScreen() {
 
   useEffect(() => {
     let cancelled = false;
-    if (!startedCourses.length) {
+    if (!enrolledList.length) {
       setCurriculumByCourse({});
       setExamInfoByCourse({});
       return;
     }
 
     Promise.all(
-      startedCourses.map(async (c) => {
+      enrolledList.map(async (e) => {
         const [curr, info] = await Promise.all([
-          courses.curriculum(c.id).catch(() => []),
-          exams.info(c.id).catch(() => ({ has_exam: false })),
+          courses.curriculum(e.course).catch(() => []),
+          exams.info(e.course).catch(() => ({ has_exam: false })),
         ]);
-        return [String(c.id), curr, info] as const;
+        return [String(e.course), curr, info] as const;
       })
     ).then((rows) => {
       if (cancelled) return;
@@ -54,7 +54,7 @@ export default function MyLearningScreen() {
     return () => {
       cancelled = true;
     };
-  }, [startedCourses]);
+  }, [enrolledList]);
 
   const countLessons = (mods: any[]): number =>
     (mods || []).reduce((sum, m) => sum + (Array.isArray(m?.lessons) ? m.lessons.length : 0), 0);
@@ -75,23 +75,27 @@ export default function MyLearningScreen() {
       <Text style={styles.title}>Моё обучение</Text>
 
       <Text style={styles.sectionTitle}>Курсы в обучении</Text>
-      {startedCourses.length === 0 ? (
-        <Text style={styles.muted}>Нажмите «Начать обучение» на странице курса, чтобы добавить его сюда.</Text>
+      {enrollmentsLoading ? (
+        <ActivityIndicator style={{ marginVertical: 16 }} />
+      ) : enrolledList.length === 0 ? (
+        <>
+          <Text style={styles.muted}>Начните курс из каталога — запись синхронизируется с аккаунтом (как на сайте).</Text>
+          <TouchableOpacity style={styles.refreshBtn} onPress={() => refreshEnrollments()}>
+            <Text style={styles.refreshBtnText}>Обновить список</Text>
+          </TouchableOpacity>
+        </>
       ) : (
         <View style={styles.list}>
-          {startedCourses.map((course) => (
-            <Link key={course.id} href={`/course/${course.id}/learn`} asChild>
-              <TouchableOpacity style={styles.card} activeOpacity={0.85}>
-                <View style={styles.cardMain}>
-                  <Text style={styles.cardTitle} numberOfLines={2}>{course.title}</Text>
-                  <Text style={styles.cardMeta}>{levelLabel(course.level_display ?? course.level)}</Text>
-                  <Text style={styles.cardPrice}>{formatCoursePrice(course.price, course)}</Text>
-
+          {enrolledList.map((e) => (
+            <View key={e.id} style={styles.card}>
+              <Link href={`/course/${e.course}/learn`} asChild>
+                <TouchableOpacity style={styles.cardMain} activeOpacity={0.85}>
+                  <Text style={styles.cardTitle} numberOfLines={2}>{e.course_title}</Text>
                   {(() => {
-                    const cid = String(course.id);
+                    const cid = String(e.course);
                     const mods = curriculumByCourse[cid] || [];
                     const total = countLessons(mods);
-                    const completed = getCompletedLessonIds(course.id);
+                    const completed = getCompletedLessonIds(e.course);
                     const percent = total ? Math.min(100, Math.round((completed.length / total) * 100)) : 0;
                     const info = examInfoByCourse[cid];
                     const attemptsLeft = typeof info?.attempts_left_24h === 'number' ? info.attempts_left_24h : null;
@@ -110,7 +114,7 @@ export default function MyLearningScreen() {
                         {info?.has_exam ? (
                           <>
                             <Text style={styles.extraLine}>
-                              Попыток осталось (3ч): <Text style={styles.extraStrong}>{attemptsLeft ?? '—'}</Text>
+                              Попыток осталось (4ч): <Text style={styles.extraStrong}>{attemptsLeft ?? '—'}</Text>
                               {attemptsLeft === 0 && resetAt ? (
                                 <>
                                   {'  '}•  Снова можно через: <Text style={styles.extraStrong}>{formatCountdown(resetAt)}</Text>
@@ -125,8 +129,8 @@ export default function MyLearningScreen() {
 
                             {recent.length > 0 ? (
                               <TouchableOpacity
-                                onPress={(e) => {
-                                  e.stopPropagation();
+                                onPress={(ev) => {
+                                  ev.stopPropagation?.();
                                   setExpandedHistory((p) => ({ ...p, [cid]: !p[cid] }));
                                 }}
                                 style={styles.historyToggle}
@@ -151,9 +155,21 @@ export default function MyLearningScreen() {
                       </View>
                     );
                   })()}
-                </View>
-              </TouchableOpacity>
-            </Link>
+                </TouchableOpacity>
+              </Link>
+              <View style={styles.rowActions}>
+                <Link href={`/course/${e.course}/learn`} asChild>
+                  <TouchableOpacity style={styles.iconBtn} accessibilityLabel="Продолжить">
+                    <Ionicons name="play" size={22} color="#3f8cff" />
+                  </TouchableOpacity>
+                </Link>
+                <Link href={`/course/${e.course}/exam`} asChild>
+                  <TouchableOpacity style={[styles.iconBtn, styles.iconBtnExam]} accessibilityLabel="Итоговый тест">
+                    <Ionicons name="clipboard-outline" size={22} color="#f59e0b" />
+                  </TouchableOpacity>
+                </Link>
+              </View>
+            </View>
           ))}
         </View>
       )}
@@ -164,7 +180,7 @@ export default function MyLearningScreen() {
       ) : (
         <View style={styles.list}>
           {favorites.map((course) => (
-            <View key={course.id} style={styles.card}>
+            <View key={course.id} style={[styles.card, styles.cardFav]}>
               <Link href={`/course/${course.id}`} asChild style={styles.cardMain}>
                 <TouchableOpacity activeOpacity={0.8} style={styles.cardMainTouch}>
                   <Text style={styles.cardTitle} numberOfLines={2}>{course.title}</Text>
@@ -194,19 +210,40 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 18, fontWeight: '600', marginBottom: 12, color: '#111' },
   sectionTitleSpaced: { marginTop: 24 },
   muted: { fontSize: 15, color: '#6b7280', textAlign: 'center', marginBottom: 8 },
+  refreshBtn: { alignSelf: 'center', paddingVertical: 10, paddingHorizontal: 16 },
+  refreshBtnText: { color: '#3f8cff', fontWeight: '600' },
   list: { marginBottom: 24 },
   card: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'stretch',
     backgroundColor: '#fff',
     borderRadius: 12,
-    padding: 14,
     marginBottom: 10,
     borderWidth: 1,
     borderColor: '#e5e7eb',
+    overflow: 'hidden',
   },
-  cardMain: { flex: 1 },
+  cardMain: { flex: 1, padding: 14 },
   cardMainTouch: { flex: 1, paddingVertical: 4 },
+  rowActions: {
+    justifyContent: 'center',
+    gap: 6,
+    paddingRight: 10,
+    paddingVertical: 8,
+    borderLeftWidth: 1,
+    borderLeftColor: '#f3f4f6',
+  },
+  iconBtn: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    backgroundColor: '#fafafa',
+  },
+  iconBtnExam: { borderColor: 'rgba(245, 158, 11, 0.5)', backgroundColor: 'rgba(245, 158, 11, 0.06)' },
   cardTitle: { fontSize: 16, fontWeight: '600', color: '#111', marginBottom: 4 },
   cardMeta: { fontSize: 12, color: '#6b7280', marginBottom: 2 },
   cardPrice: { fontSize: 14, fontWeight: '600', color: '#0d0d0d' },
@@ -220,4 +257,5 @@ const styles = StyleSheet.create({
   historyList: { marginTop: 4, paddingLeft: 2, gap: 2 },
   historyItem: { fontSize: 13, color: '#6b7280' },
   heartBtn: { padding: 8 },
+  cardFav: { alignItems: 'center' },
 });

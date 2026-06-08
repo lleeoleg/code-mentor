@@ -1,76 +1,73 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { enrollments, courses } from '@/lib/api';
+import { useAuth } from '@/contexts/AuthContext';
 
-const STORAGE_MY_LEARNING = '@codementor_my_learning';
-
-export type LearningCourse = {
+/** Как в GET /enrollments/ (совпадает с вебом) */
+export type EnrollmentRow = {
   id: number;
-  title: string;
-  price?: number | string;
-  level_display?: string;
-  level?: string;
+  course: number;
+  course_title: string;
+  enrolled_at?: string;
+  source?: string;
 };
 
 type MyLearningContextType = {
-  startedCourses: LearningCourse[];
-  isInLearning: (id: number) => boolean;
-  addToLearning: (course: LearningCourse) => Promise<void>;
-  removeFromLearning: (id: number) => Promise<void>;
+  enrolledList: EnrollmentRow[];
+  loading: boolean;
+  refreshEnrollments: () => Promise<void>;
+  /** POST /courses/:id/try-free/ — как «Начать обучение» на сайте */
+  tryStartLearning: (courseId: number) => Promise<void>;
+  isEnrolled: (courseId: number) => boolean;
 };
 
 const MyLearningContext = createContext<MyLearningContextType | null>(null);
 
 export function MyLearningProvider({ children }: { children: React.ReactNode }) {
-  const [startedCourses, setStartedCourses] = useState<LearningCourse[]>([]);
+  const { user } = useAuth();
+  const [enrolledList, setEnrolledList] = useState<EnrollmentRow[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  const load = useCallback(async () => {
-    try {
-      const raw = await AsyncStorage.getItem(STORAGE_MY_LEARNING);
-      if (raw) {
-        const parsed = JSON.parse(raw) as LearningCourse[];
-        setStartedCourses(Array.isArray(parsed) ? parsed : []);
-      }
-    } catch {
-      setStartedCourses([]);
+  const refreshEnrollments = useCallback(async () => {
+    if (!user) {
+      setEnrolledList([]);
+      return;
     }
-  }, []);
+    setLoading(true);
+    try {
+      const data = await enrollments.list();
+      setEnrolledList(Array.isArray(data) ? data : []);
+    } catch {
+      setEnrolledList([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [user]);
 
   useEffect(() => {
-    load();
-  }, [load]);
+    refreshEnrollments();
+  }, [refreshEnrollments]);
 
-  const save = useCallback(async (list: LearningCourse[]) => {
-    setStartedCourses(list);
-    await AsyncStorage.setItem(STORAGE_MY_LEARNING, JSON.stringify(list));
-  }, []);
-
-  const isInLearning = useCallback(
-    (id: number) => startedCourses.some((c) => c.id === id),
-    [startedCourses]
+  const tryStartLearning = useCallback(
+    async (courseId: number) => {
+      await courses.tryFree(courseId);
+      await refreshEnrollments();
+    },
+    [refreshEnrollments]
   );
 
-  const addToLearning = useCallback(
-    async (course: LearningCourse) => {
-      if (startedCourses.some((c) => c.id === course.id)) return;
-      await save([...startedCourses, course]);
-    },
-    [startedCourses, save]
-  );
-
-  const removeFromLearning = useCallback(
-    async (id: number) => {
-      await save(startedCourses.filter((c) => c.id !== id));
-    },
-    [startedCourses, save]
+  const isEnrolled = useCallback(
+    (courseId: number) => enrolledList.some((e) => e.course === courseId),
+    [enrolledList]
   );
 
   return (
     <MyLearningContext.Provider
       value={{
-        startedCourses,
-        isInLearning,
-        addToLearning,
-        removeFromLearning,
+        enrolledList,
+        loading,
+        refreshEnrollments,
+        tryStartLearning,
+        isEnrolled,
       }}
     >
       {children}

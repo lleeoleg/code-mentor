@@ -18,10 +18,10 @@ import {
   filterCoursesByLevel,
   LEVEL_FILTER_OPTIONS,
   COURSE_TABS,
-  PROGRAM_TABS,
 } from '@/utils/courseHelpers';
-import { Image } from 'expo-image';
-import { getCourseLogoSource } from '@/utils/courseLogos';
+import { CourseGridCard } from '@/components/CourseGridCard';
+import { HomeProgramSlider } from '@/components/HomeProgramSlider';
+import { HomeReviewsStrip } from '@/components/HomeReviewsStrip';
 
 const WEBINAR_URL = 'https://welcome.stepik.org/go_career';
 
@@ -41,7 +41,6 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(!!user);
   const [levelFilter, setLevelFilter] = useState('');
   const [activeCourseTab, setActiveCourseTab] = useState(COURSE_TABS[0].id);
-  const [activeProgramTab, setActiveProgramTab] = useState(PROGRAM_TABS[0].id);
 
   useEffect(() => {
     if (!user) {
@@ -59,7 +58,6 @@ export default function HomeScreen() {
 
   const filteredByLevel = filterCoursesByLevel(courseList, levelFilter);
   const showCourses = user && !loading;
-  const logoSize = 34;
   const screenW = Dimensions.get('window').width;
   const cardW = Math.floor((screenW - 16 * 2 - 12) / 2);
 
@@ -140,25 +138,14 @@ export default function HomeScreen() {
             <>
               <View style={styles.grid}>
                 {filteredByLevel.map((course) => (
-                  <TouchableOpacity
+                  <CourseGridCard
                     key={course.id}
-                    style={[styles.cardSquare, { width: cardW }]}
+                    width={cardW}
+                    course={course}
+                    levelBadge={levelLabel(course.level_display ?? course.level)}
+                    priceLabel={formatCoursePrice(course.price, course)}
                     onPress={() => router.push(`/course/${course.id}`)}
-                    activeOpacity={0.8}
-                  >
-                    <View style={styles.cardTop}>
-                      {(() => {
-                        const src = getCourseLogoSource(course);
-                        if (!src) return null;
-                        return <Image source={src} style={{ width: logoSize, height: logoSize }} contentFit="contain" />;
-                      })()}
-                    </View>
-                    <View style={styles.cardBody}>
-                      <Text style={styles.cardTitle} numberOfLines={2}>{course.title}</Text>
-                      <Text style={styles.cardMeta}>{levelLabel(course.level_display ?? course.level)}</Text>
-                      <Text style={styles.cardPrice}>{formatCoursePrice(course.price, course)}</Text>
-                    </View>
-                  </TouchableOpacity>
+                  />
                 ))}
               </View>
               <TouchableOpacity style={styles.moreCoursesBtn} onPress={() => router.push('/(tabs)/courses')} activeOpacity={0.8}>
@@ -166,64 +153,11 @@ export default function HomeScreen() {
               </TouchableOpacity>
             </>
           )}
-
-          {/* Программы курсов: вкладки + фильтр по уровню */}
-          <Text style={[styles.sectionTitle, styles.sectionTitlePrograms]}>Программы курсов</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabsScroll} contentContainerStyle={styles.tabsContent}>
-            {PROGRAM_TABS.map((tab) => (
-              <TouchableOpacity
-                key={tab.id}
-                style={[styles.tab, activeProgramTab === tab.id && styles.tabActive]}
-                onPress={() => setActiveProgramTab(tab.id)}
-              >
-                <Text style={[styles.tabText, activeProgramTab === tab.id && styles.tabTextActive]}>{tab.label}</Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-          <Text style={styles.sectionSubtitle}>Уровень</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipsScroll} contentContainerStyle={styles.chipsContent}>
-            {LEVEL_FILTER_OPTIONS.map((opt) => (
-              <TouchableOpacity
-                key={`program-${opt.value || 'all'}`}
-                style={[styles.chip, levelFilter === opt.value && styles.chipActive]}
-                onPress={() => setLevelFilter(opt.value)}
-              >
-                <Text style={[styles.chipText, levelFilter === opt.value && styles.chipTextActive]}>{opt.label}</Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-
-          {loading ? (
-            <ActivityIndicator style={styles.loader} color="#0d0d0d" />
-          ) : filteredByLevel.length === 0 ? (
-            <Text style={styles.muted}>Пока нет программ.</Text>
-          ) : (
-            <View style={styles.grid}>
-              {filteredByLevel.map((course) => (
-                <TouchableOpacity
-                  key={`program-${course.id}`}
-                  style={[styles.cardSquare, { width: cardW }]}
-                  onPress={() => router.push(`/course/${course.id}`)}
-                  activeOpacity={0.8}
-                >
-                  <View style={styles.cardTop}>
-                    {(() => {
-                      const src = getCourseLogoSource(course);
-                      if (!src) return null;
-                      return <Image source={src} style={{ width: logoSize, height: logoSize }} contentFit="contain" />;
-                    })()}
-                  </View>
-                  <View style={styles.cardBody}>
-                    <Text style={styles.cardTitle} numberOfLines={2}>{course.title}</Text>
-                    <Text style={styles.cardMeta}>{levelLabel(course.level_display ?? course.level)}</Text>
-                    <Text style={styles.cardPrice}>{formatCoursePrice(course.price, course)}</Text>
-                  </View>
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
         </>
       )}
+
+      <HomeProgramSlider />
+      <HomeReviewsStrip />
 
       {!user && (
         <TouchableOpacity style={styles.linkBtn} onPress={() => router.push('/login')}>
@@ -329,9 +263,6 @@ const styles = StyleSheet.create({
     marginTop: SPACING + 4,
     marginBottom: 12,
   },
-  sectionTitlePrograms: {
-    marginTop: SPACING + 12,
-  },
   sectionSubtitle: {
     fontSize: 14,
     color: '#6b7280',
@@ -365,34 +296,6 @@ const styles = StyleSheet.create({
   loader: { marginVertical: 24 },
   muted: { color: '#6b7280', padding: 16 },
   grid: { paddingHorizontal: 16, gap: 12, flexDirection: 'row', flexWrap: 'wrap' },
-  card: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    marginBottom: 12,
-  },
-  cardSquare: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    marginBottom: 12,
-    aspectRatio: 1.15,
-  },
-  cardTop: {
-    height: 44,
-    backgroundColor: '#f3f4f6',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 6,
-  },
-  cardBody: { padding: 10, paddingBottom: 12 },
-  cardTitle: { fontSize: 13, fontWeight: '600', marginBottom: 10, color: '#111' },
-  cardMeta: { fontSize: 10, color: '#6b7280', marginBottom: 10 },
-  cardPrice: { fontSize: 12, fontWeight: '600', color: '#0d0d0d' },
   moreCoursesBtn: {
     alignSelf: 'flex-end',
     marginHorizontal: 16,

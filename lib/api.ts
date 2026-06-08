@@ -47,7 +47,8 @@ export const auth = {
       .post<{ user: { username: string }; tokens: { access: string; refresh: string } }>('/auth/register/', data)
       .then((r) => r.data),
   me: () => api.get('/auth/me/').then((r) => r.data),
-  updateMe: (data: { email?: string }) => api.patch('/auth/me/', data).then((r) => r.data),
+  updateMe: (data: { email?: string; first_name?: string; last_name?: string }) =>
+    api.patch('/auth/me/', data).then((r) => r.data),
   setPassword: (data: { new_password: string; new_password_confirm: string }) =>
     api.post('/auth/password/', data).then((r) => r.data),
 };
@@ -56,7 +57,20 @@ export const courses = {
   list: (params?: { price_type?: string }) =>
     api.get('/courses/', { params: params || {} }).then((r) => r.data),
   get: (id: string) => api.get(`/courses/${id}/`).then((r) => r.data),
+  createCheckoutSession: (courseId: number | string) =>
+    api.post(`/courses/${courseId}/checkout/`).then((r) => r.data),
+  tryFree: (courseId: number | string) => api.post(`/courses/${courseId}/try-free/`).then((r) => r.data),
   curriculum: (id: number | string) => api.get(`/courses/${id}/curriculum/`).then((r) => r.data),
+};
+
+export const enrollments = {
+  list: () => api.get('/enrollments/').then((r) => r.data),
+};
+
+export const certificates = {
+  list: () => api.get('/certificates/').then((r) => r.data),
+  downloadPdf: (courseId: number | string) =>
+    api.get(`/courses/${courseId}/certificate/pdf/`, { responseType: 'arraybuffer' as any }).then((r) => r.data),
 };
 
 export const lessons = {
@@ -67,11 +81,16 @@ export const comments = {
   list: (lessonId: number | string) => api.get(`/lessons/${lessonId}/comments/`).then((r) => r.data),
   create: (lessonId: number | string, text: string) =>
     api.post(`/lessons/${lessonId}/comments/create/`, { text }).then((r) => r.data),
+  update: (commentId: number | string, text: string) =>
+    api.patch(`/comments/${commentId}/`, { text }).then((r) => r.data),
+  delete: (commentId: number | string) => api.delete(`/comments/${commentId}/`).then((r) => r.data),
 };
 
 export const exams = {
-  info: (courseId: number | string) => api.get(`/courses/${courseId}/exam/`).then((r) => r.data),
-  start: (courseId: number | string) => api.post(`/courses/${courseId}/exam/start/`).then((r) => r.data),
+  info: (courseId: number | string, opts?: { lang?: string }) =>
+    api.get(`/courses/${courseId}/exam/`, { params: opts || {} }).then((r) => r.data),
+  start: (courseId: number | string, opts?: { lang?: string }) =>
+    api.post(`/courses/${courseId}/exam/start/`, null, { params: opts || {} }).then((r) => r.data),
   submit: (attemptId: number | string, payload: { answers: { question_id: number; choice_id: number }[] }) =>
     api.post(`/exam-attempts/${attemptId}/submit/`, payload).then((r) => r.data),
   certificatePdf: (courseId: number | string) =>
@@ -105,6 +124,10 @@ export const lessonProgress = {
   complete: (lessonId: number) => api.post('/lesson-progress/', { lesson_id: lessonId }).then((r) => r.data),
   sync: (payload: { by_course?: Record<string, number[]>; lesson_ids?: number[] }) =>
     api.post('/lesson-progress/sync/', payload).then((r) => r.data),
+};
+
+export const activity = {
+  get: () => api.get('/activity/').then((r) => r.data),
 };
 
 export default api;

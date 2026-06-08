@@ -8,9 +8,9 @@ import {
   StyleSheet,
   ActivityIndicator,
 } from 'react-native';
-import { useRouter } from 'expo-router';
-import { Image } from 'expo-image';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { courses as coursesApi } from '@/lib/api';
+import { CourseGridCard } from '@/components/CourseGridCard';
 import {
   levelLabel,
   formatCoursePrice,
@@ -18,8 +18,6 @@ import {
   LEVEL_FILTER_OPTIONS,
   PRICE_FILTER_OPTIONS,
 } from '@/utils/courseHelpers';
-import { getCourseLogoSource } from '@/utils/courseLogos';
-
 type Course = {
   id: number;
   title: string;
@@ -42,12 +40,19 @@ function filterBySearch(list: Course[], q: string): Course[] {
 
 export default function CoursesScreen() {
   const router = useRouter();
+  const { q: qParam } = useLocalSearchParams<{ q?: string }>();
   const [list, setList] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [levelFilter, setLevelFilter] = useState('');
   const [priceFilter, setPriceFilter] = useState('');
   const [searchQ, setSearchQ] = useState('');
+
+  useEffect(() => {
+    if (typeof qParam === 'string' && qParam.trim()) {
+      setSearchQ(qParam.trim());
+    }
+  }, [qParam]);
 
   useEffect(() => {
     setLoading(true);
@@ -66,27 +71,13 @@ export default function CoursesScreen() {
   const filtered = filterBySearch(byLevel, searchQ);
 
   const renderItem = ({ item }: { item: Course }) => (
-    <TouchableOpacity
-      style={styles.cardSquare}
+    <CourseGridCard
+      course={item}
+      levelBadge={levelLabel(item.level_display ?? item.level)}
+      priceLabel={formatCoursePrice(item.price, item)}
       onPress={() => router.push(`/course/${item.id}`)}
-      activeOpacity={0.8}
-    >
-      <View style={styles.cardTop}>
-        {(() => {
-          const src = getCourseLogoSource(item);
-          if (!src) return null;
-          return <Image source={src} style={styles.cardLogo} contentFit="contain" />;
-        })()}
-      </View>
-      <View style={styles.cardBody}>
-        <Text style={styles.cardMeta}>{levelLabel(item.level_display ?? item.level)}</Text>
-        <Text style={styles.cardTitle} numberOfLines={2}>{item.title}</Text>
-        <Text style={styles.cardDesc} numberOfLines={2}>
-          {item.description ? item.description.slice(0, 100) + (item.description.length > 100 ? '…' : '') : 'Без описания'}
-        </Text>
-        <Text style={styles.cardPrice}>{formatCoursePrice(item.price, item)}</Text>
-      </View>
-    </TouchableOpacity>
+      style={styles.catalogCard}
+    />
   );
 
   return (
@@ -168,34 +159,5 @@ const styles = StyleSheet.create({
   error: { color: '#dc2626', padding: 16 },
   muted: { color: '#6b7280', padding: 16 },
   list: { padding: 16, paddingTop: 0 },
-  card: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    marginBottom: 16,
-  },
-  cardSquare: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    marginBottom: 16,
-    aspectRatio: 1.5,
-  },
-  cardTop: {
-    height: 56,
-    backgroundColor: '#f3f4f6',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 8,
-  },
-  cardLogo: { width: 44, height: 44 },
-  cardBody: { padding: 10, paddingBottom: 12 },
-  cardMeta: { fontSize: 12, color: '#6b7280', marginBottom: 4 },
-  cardTitle: { fontSize: 16, fontWeight: '600', marginBottom: 4 },
-  cardDesc: { fontSize: 13, color: '#6b7280', marginBottom: 6 },
-  cardPrice: { fontSize: 14, fontWeight: '600' },
+  catalogCard: { marginBottom: 16 },
 });

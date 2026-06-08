@@ -1,5 +1,14 @@
 import { useState, useEffect } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
+import {
+  View,
+  Text,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  ActivityIndicator,
+  Alert,
+  Linking,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -7,6 +16,7 @@ import { courses } from '@/lib/api';
 import { levelLabel, formatCoursePrice } from '@/utils/courseHelpers';
 import { useFavorites } from '@/contexts/FavoritesContext';
 import { useMyLearning } from '@/contexts/MyLearningContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 function formatDate(s: string | undefined) {
   if (!s) return '—';
@@ -21,19 +31,22 @@ export default function CourseDetailScreen() {
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const { user } = useAuth();
   const { isFavorite, toggleFavorite } = useFavorites();
-  const { addToLearning, isInLearning } = useMyLearning();
+  const { isEnrolled, tryStartLearning } = useMyLearning();
   const [course, setCourse] = useState<{
     id: number;
     title: string;
     description?: string;
     level_display?: string;
     level?: string;
-    price?: number | string;
+    price?: number | string | null;
     updated_at?: string;
   } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [payLoading, setPayLoading] = useState(false);
+  const [startLoading, setStartLoading] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -57,18 +70,59 @@ export default function CourseDetailScreen() {
       level: course.level,
     });
 
-  const handleTryFree = () => {
-    // Начать/продолжить обучение — ведём на экран уроков.
-    if (!isInLearning(course.id)) {
-      addToLearning({
-        id: course.id,
-        title: course.title,
-        price: course.price,
-        level_display: course.level_display,
-        level: course.level,
-      });
+  const priceNum = course.price == null ? 0 : Number(course.price);
+  const isFreeCourse = !priceNum || priceNum <= 0;
+
+  const requireAuth = (): boolean => {
+    if (!user) {
+      Alert.alert('Вход', 'Войдите в аккаунт, чтобы записаться на курс.', [
+        { text: 'Отмена', style: 'cancel' },
+        { text: 'Войти', onPress: () => router.push('/login') },
+      ]);
+      return false;
     }
-    router.push(`/course/${course.id}/learn`);
+    return true;
+  };
+
+  const handleBuy = async () => {
+    if (!requireAuth()) return;
+    setPayLoading(true);
+    try {
+      const data = await courses.createCheckoutSession(course.id);
+      const url = (data as { url?: string })?.url;
+      if (url) await Linking.openURL(url);
+      else Alert.alert('Ошибка', 'Не удалось получить ссылку на оплату.');
+    } catch (e: any) {
+      Alert.alert('Ошибка', e?.response?.data?.detail || e?.message || 'Оплата недоступна');
+    } finally {
+      setPayLoading(false);
+    }
+  };
+
+  const handleTryFree = async () => {
+    if (!requireAuth()) return;
+    setStartLoading(true);
+    try {
+      await tryStartLearning(course.id);
+      router.push(`/course/${course.id}/learn`);
+    } catch (e: any) {
+      Alert.alert('Ошибка', e?.response?.data?.detail || e?.message || 'Не удалось записаться');
+    } finally {
+      setStartLoading(false);
+    }
+  };
+
+  const handleStartFree = async () => {
+    if (!requireAuth()) return;
+    setStartLoading(true);
+    try {
+      await tryStartLearning(course.id);
+      router.push(`/course/${course.id}/learn`);
+    } catch (e: any) {
+      Alert.alert('Ошибка', e?.response?.data?.detail || e?.message || 'Не удалось начать курс');
+    } finally {
+      setStartLoading(false);
+    }
   };
 
   return (
@@ -84,20 +138,44 @@ export default function CourseDetailScreen() {
       <View style={styles.body}>
         <Text style={styles.badge}>{levelLabel(course.level_display ?? course.level)}</Text>
         <Text style={styles.title}>{course.title}</Text>
-        <Text style={styles.meta}>
-          Обновлён: {formatDate(course.updated_at)}
-        </Text>
+        <Text style={styles.meta}>Обновлён: {formatDate(course.updated_at)}</Text>
 
         <View style={styles.actions}>
           <Text style={styles.priceBlock}>{formatCoursePrice(course.price, course)}</Text>
-          <TouchableOpacity style={styles.btnPrimary} activeOpacity={0.8}>
-            <Text style={styles.btnPrimaryText}>Купить</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.btnOutline} onPress={handleTryFree} activeOpacity={0.8}>
-            <Text style={styles.btnOutlineText}>
-              {isInLearning(course.id) ? 'Продолжить обучение' : 'Начать обучение'}
-            </Text>
-          </TouchableOpacity>
+
+          {isFreeCourse ? (
+            <TouchableOpacity
+              style={[styles.btnPrimary, startLoading && styles.btnDisabled]}
+              onPress={handleStartFree}
+              activeOpacity={0.8}
+              disabled={startLoading}
+            >
+              <Text style={styles.btnPrimaryText}>
+                {startLoading ? '…' : isEnrolled(course.id) ? 'Продолжить обучение' : 'Начать курс бесплатно'}
+              </Text>
+            </TouchableOpacity>
+          ) : (
+            <>
+              <TouchableOpacity
+                style={[styles.btnPrimary, payLoading && styles.btnDisabled]}
+                onPress={handleBuy}
+                activeOpacity={0.8}
+                disabled={payLoading}
+              >
+                <Text style={styles.btnPrimaryText}>{payLoading ? '…' : 'Купить'}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.btnOutline, startLoading && styles.btnDisabled]}
+                onPress={handleTryFree}
+                activeOpacity={0.8}
+                disabled={startLoading}
+              >
+                <Text style={styles.btnOutlineText}>
+                  {startLoading ? '…' : isEnrolled(course.id) ? 'Продолжить обучение' : 'Попробовать бесплатно'}
+                </Text>
+              </TouchableOpacity>
+            </>
+          )}
         </View>
 
         <Text style={styles.desc}>{course.description || 'Описание отсутствует.'}</Text>
@@ -144,7 +222,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   btnPrimary: {
-    backgroundColor: '#0d0d0d',
+    backgroundColor: '#3f8cff',
     paddingVertical: 14,
     borderRadius: 10,
     alignItems: 'center',
@@ -160,5 +238,6 @@ const styles = StyleSheet.create({
     borderColor: '#e5e7eb',
   },
   btnOutlineText: { color: '#0d0d0d', fontSize: 16, fontWeight: '600' },
+  btnDisabled: { opacity: 0.6 },
   desc: { fontSize: 16, lineHeight: 24 },
 });
