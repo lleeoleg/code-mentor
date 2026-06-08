@@ -6,6 +6,7 @@ import { courses as coursesApi } from '../api';
 import { getProfile } from '../utils/profileStore';
 import Footer from './Footer';
 import WhatsNewModal from './WhatsNewModal';
+import AiAssistant from './AiAssistant';
 import './Layout.css';
 
 function getInitials(profile, username) {
@@ -21,9 +22,11 @@ function getInitials(profile, username) {
 
 export default function Layout() {
   const { user, logout } = useAuth();
+  const { locale, setLocale, t } = useLanguage();
   const navigate = useNavigate();
   const [catalogOpen, setCatalogOpen] = useState(false);
   const [avatarOpen, setAvatarOpen] = useState(false);
+  const [langOpen, setLangOpen] = useState(false);
   const [catalogList, setCatalogList] = useState([]);
   const [catalogLoading, setCatalogLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -31,6 +34,7 @@ export default function Layout() {
   const [whatsNewOpen, setWhatsNewOpen] = useState(false);
   const catalogRef = useRef(null);
   const avatarRef = useRef(null);
+  const langRef = useRef(null);
 
   useEffect(() => {
     if (user?.username) {
@@ -69,12 +73,13 @@ export default function Layout() {
         .catch(() => setCatalogList([]))
         .finally(() => setCatalogLoading(false));
     }
-  }, [catalogOpen, user]);
+  }, [catalogOpen, user, locale]);
 
   useEffect(() => {
     function handleClickOutside(e) {
       if (catalogRef.current && !catalogRef.current.contains(e.target)) closeCatalog();
       if (avatarRef.current && !avatarRef.current.contains(e.target)) closeAvatar();
+      if (langRef.current && !langRef.current.contains(e.target)) setLangOpen(false);
     }
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -93,7 +98,6 @@ export default function Layout() {
   const avatarInitials = getInitials(profile, user?.username);
   const location = useLocation();
   const isCourseLearn = /^\/courses\/\d+\/learn\/?$/.test(location.pathname);
-  const { locale, setLocale, t } = useLanguage();
 
   return (
     <div className={`layout ${isCourseLearn ? 'layout--course-learn' : ''}`}>
@@ -117,9 +121,9 @@ export default function Layout() {
               {catalogOpen && (
                 <div className="header-dropdown header-catalog-dropdown">
                   {catalogLoading ? (
-                    <div className="header-dropdown-loading">Загрузка...</div>
+                    <div className="header-dropdown-loading">{t('header.catalogLoading')}</div>
                   ) : catalogList.length === 0 ? (
-                    <div className="header-dropdown-empty">Нет курсов</div>
+                    <div className="header-dropdown-empty">{t('header.catalogEmpty')}</div>
                   ) : (
                     <ul className="header-catalog-list">
                       {catalogList.map((c) => (
@@ -144,15 +148,37 @@ export default function Layout() {
         </div>
 
         <div className="header-right">
-          <button
-            type="button"
-            className="header-lang-btn"
-            onClick={() => setLocale((l) => (l === 'ru' ? 'en' : 'ru'))}
-            aria-label={locale === 'ru' ? 'Switch to English' : 'Переключить на русский'}
-            title={locale === 'ru' ? 'English' : 'Русский'}
-          >
-            {locale === 'ru' ? 'EN' : 'RU'}
-          </button>
+          <div className="header-lang-wrap" ref={langRef}>
+            <button
+              type="button"
+              className="header-lang-btn"
+              onClick={() => setLangOpen((v) => !v)}
+              aria-label={t('header.changeLanguage')}
+              aria-expanded={langOpen}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+              </svg>
+            </button>
+            {langOpen && (
+              <div className="header-dropdown header-lang-dropdown">
+                <button
+                  type="button"
+                  className={`header-dropdown-item ${locale === 'ru' ? 'header-dropdown-item--active' : ''}`}
+                  onClick={() => { setLocale('ru'); setLangOpen(false); }}
+                >
+                  Русский
+                </button>
+                <button
+                  type="button"
+                  className={`header-dropdown-item ${locale === 'en' ? 'header-dropdown-item--active' : ''}`}
+                  onClick={() => { setLocale('en'); setLangOpen(false); }}
+                >
+                  English
+                </button>
+              </div>
+            )}
+          </div>
           {user && (
             <form className="header-search" onSubmit={handleSearch}>
               <input
@@ -175,7 +201,7 @@ export default function Layout() {
                 className="header-avatar"
                 onClick={() => setAvatarOpen((v) => !v)}
                 aria-expanded={avatarOpen}
-                aria-label="Меню пользователя"
+                aria-label={t('header.userMenu')}
               >
                 {profile?.avatar ? (
                   <img src={profile.avatar} alt="" />
@@ -215,6 +241,7 @@ export default function Layout() {
       </main>
       {!isCourseLearn && <Footer />}
       <WhatsNewModal open={whatsNewOpen} onClose={() => setWhatsNewOpen(false)} />
+      <AiAssistant />
     </div>
   );
 }

@@ -5,7 +5,7 @@ import { formatCoursePrice } from '../utils/courseHelpers';
 import './PaymentModal.css';
 
 export default function PaymentModal({ open, onClose, course }) {
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
   const [tab, setTab] = useState('self');
   const [email, setEmail] = useState('');
   const [showPromo, setShowPromo] = useState(false);
@@ -38,7 +38,12 @@ export default function PaymentModal({ open, onClose, course }) {
       .finally(() => setLoading(false));
   };
 
-  const priceDisplay = course ? formatCoursePrice(course.price, course) : '';
+  const priceDisplay = course
+    ? formatCoursePrice(course.price, {
+        freeLabel: t('common.priceFree'),
+        numberLocale: locale === 'en' ? 'en-US' : 'ru-RU',
+      })
+    : '';
 
   return (
     <div className="payment-modal-backdrop" onClick={onClose} role="dialog" aria-modal="true" aria-labelledby="payment-modal-title">

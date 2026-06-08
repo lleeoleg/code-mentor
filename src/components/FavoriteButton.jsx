@@ -1,4 +1,5 @@
 import { useFavorites } from '../contexts/FavoritesContext';
+import { useLanguage } from '../contexts/LanguageContext';
 
 const HeartOutline = () => (
   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
@@ -13,6 +14,7 @@ const HeartFilled = () => (
 );
 
 export default function FavoriteButton({ courseId, onCard, className = '' }) {
+  const { t } = useLanguage();
   const { isFavorite, toggleFavorite } = useFavorites();
   const active = isFavorite(courseId);
 
@@ -29,7 +31,7 @@ export default function FavoriteButton({ courseId, onCard, className = '' }) {
       type="button"
       className={`course-fav-btn ${active ? 'course-fav-btn-active' : ''} ${className}`.trim()}
       onClick={handleClick}
-      aria-label={active ? 'Убрать из избранного' : 'Добавить в избранное'}
+      aria-label={active ? t('favorites.remove') : t('favorites.add')}
     >
       {active ? <HeartFilled /> : <HeartOutline />}
     </button>

@@ -1,0 +1,231 @@
+.py-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  max-width: 740px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.py-editor-desc {
+  color: var(--text);
+  line-height: 1.7;
+  font-size: 0.95rem;
+}
+
+.py-editor-desc h2 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin: 0 0 10px;
+  color: var(--text);
+}
+
+.py-editor-desc p {
+  margin: 0 0 10px;
+}
+
+.py-editor-desc pre {
+  margin: 12px 0;
+  border-radius: 7px;
+  overflow-x: auto;
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+
+.py-editor-desc code {
+  font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+  font-size: 0.88em;
+}
+
+/* Shell container */
+.py-editor-shell {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: #0f1117;
+  box-shadow: var(--shadow-card);
+}
+
+/* Toolbar */
+.py-editor-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 14px;
+  background: #1a1d27;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  gap: 12px;
+}
+
+.py-editor-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #7c8ea6;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.py-editor-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.py-editor-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: background 0.15s, opacity 0.15s;
+  font-family: inherit;
+}
+
+.py-editor-btn--hint {
+  background: rgba(255,255,255,0.06);
+  color: #a0aec0;
+}
+.py-editor-btn--hint:hover {
+  background: rgba(255,255,255,0.1);
+  color: #fff;
+}
+
+.py-editor-btn--reset {
+  background: rgba(255,255,255,0.06);
+  color: #a0aec0;
+}
+.py-editor-btn--reset:hover {
+  background: rgba(255,255,255,0.1);
+  color: #fff;
+}
+
+.py-editor-btn--run {
+  background: #3f8cff;
+  color: #fff;
+  min-width: 110px;
+  justify-content: center;
+}
+.py-editor-btn--run:hover:not(:disabled) {
+  background: #2d7ae0;
+}
+.py-editor-btn--run:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Hint bar */
+.py-editor-hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 14px;
+  background: rgba(63, 140, 255, 0.08);
+  border-bottom: 1px solid rgba(63, 140, 255, 0.2);
+  font-size: 0.85rem;
+  color: #93c5fd;
+  line-height: 1.5;
+}
+
+/* Code area */
+.py-editor-code {
+  display: block;
+  width: 100%;
+  min-height: 160px;
+  padding: 16px;
+  background: #0f1117;
+  color: #e2e8f0;
+  border: none;
+  outline: none;
+  font-family: 'Fira Code', 'Cascadia Code', 'Consolas', 'Courier New', monospace;
+  font-size: 0.875rem;
+  line-height: 1.7;
+  resize: vertical;
+  tab-size: 4;
+  box-sizing: border-box;
+}
+
+.py-editor-code:focus {
+  background: #0d1020;
+}
+
+/* Output area */
+.py-editor-output-wrap {
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+
+.py-editor-output-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #7c8ea6;
+  background: #141720;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+
+.py-editor-badge {
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+.py-editor-badge--ok {
+  background: rgba(22, 163, 74, 0.2);
+  color: #4ade80;
+}
+.py-editor-badge--err {
+  background: rgba(220, 38, 38, 0.2);
+  color: #f87171;
+}
+
+.py-editor-output {
+  margin: 0;
+  padding: 14px 16px;
+  min-height: 64px;
+  max-height: 260px;
+  overflow-y: auto;
+  font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+  font-size: 0.85rem;
+  line-height: 1.6;
+  color: #a8d8a8;
+  background: #0a0d14;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.py-editor-output--err {
+  color: #f87171;
+}
+
+.py-editor-placeholder {
+  color: #4a5568;
+  font-style: italic;
+}
+
+/* Spinner */
+.py-editor-spinner {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: py-spin 0.7s linear infinite;
+}
+
+@keyframes py-spin {
+  to { transform: rotate(360deg); }
+}

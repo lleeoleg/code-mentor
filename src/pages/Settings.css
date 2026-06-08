@@ -1,6 +1,6 @@
 .settings-page {
-  padding-top: 16px;
-  padding-bottom: 48px;
+  padding-top: 48px;
+  padding-bottom: 64px;
 }
 
 .settings-breadcrumb {
@@ -10,7 +10,7 @@
 }
 
 .settings-breadcrumb a {
-  color: var(--accent);
+  color: #374151;
   text-decoration: none;
 }
 
@@ -38,34 +38,54 @@
 .settings-nav {
   display: flex;
   flex-direction: column;
-  gap: 4px;
   position: sticky;
   top: 80px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--bg-card);
 }
 
 .settings-nav-link {
-  font-size: 0.95rem;
-  color: var(--accent);
+  font-size: 0.9rem;
+  color: #6b7280;
   text-decoration: none;
-  padding: 6px 0;
+  padding: 11px 16px;
+  border-left: 3px solid transparent;
+  border-bottom: 1px solid var(--border);
+  transition: background 0.15s, color 0.15s;
+}
+
+.settings-nav-link:last-child {
+  border-bottom: none;
 }
 
 .settings-nav-link:hover {
-  text-decoration: underline;
+  background: var(--bg-alt);
+  color: var(--text);
+  text-decoration: none;
 }
 
 .settings-nav-link.active {
   font-weight: 600;
   color: var(--text);
+  background: var(--bg-alt);
+  border-left-color: #3f8cff;
 }
 
 .settings-main {
-  max-width: 560px;
+  max-width: 600px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 28px 32px;
 }
 
 .settings-title {
   margin: 0 0 24px;
-  font-size: 1.5rem;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--border);
+  font-size: 1.35rem;
   font-weight: 700;
   color: var(--text);
 }
@@ -74,7 +94,7 @@
   display: flex;
   flex-direction: column;
   gap: 20px;
-  margin-bottom: 32px;
+  margin-bottom: 0;
 }
 
 .settings-field {
@@ -115,7 +135,7 @@
 .settings-select:focus,
 .settings-textarea:focus {
   outline: none;
-  border-color: var(--accent);
+  border-color: #3f8cff;
 }
 
 .settings-textarea {
@@ -156,7 +176,7 @@
   padding: 12px 24px;
   border: none;
   border-radius: var(--radius-sm);
-  background: #4b5563;
+  background: #3f8cff;
   color: #fff;
   font-size: 1rem;
   font-weight: 600;
@@ -166,7 +186,7 @@
 }
 
 .settings-submit:hover {
-  background: #374151;
+  background: #2d7ae0;
 }
 
 /* Реквизиты */
@@ -227,7 +247,7 @@
 .settings-section {
   padding-top: 24px;
   border-top: 1px solid var(--border);
-  margin-top: 8px;
+  margin-top: 24px;
 }
 
 .settings-avatar-block,
@@ -241,7 +261,7 @@
   width: 80px;
   height: 80px;
   border-radius: 10px;
-  background: #e74c3c;
+  background: var(--accent);
   color: #fff;
   font-size: 1.5rem;
   font-weight: 700;
@@ -275,7 +295,7 @@
   border: none;
   background: none;
   font-size: 0.95rem;
-  color: var(--accent);
+  color: #3f8cff;
   cursor: pointer;
   font-family: inherit;
   text-decoration: none;
@@ -349,7 +369,7 @@
 
 .settings-social-link {
   font-size: 0.95rem;
-  color: var(--accent);
+  color: #3f8cff;
   text-decoration: none;
 }
 

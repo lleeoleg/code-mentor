@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { getProfile } from '../utils/profileStore';
 import { SOCIAL_LINK_FIELDS, getSocialLinkUrl } from '../constants/socialLinks';
-import { activity as activityApi } from '../api';
+import { activity as activityApi, certificates as certificatesApi } from '../api';
 import './Profile.css';
 
 function getInitials(profile, username) {
@@ -40,9 +40,9 @@ function SocialLinkIcon({ id }) {
         <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" />
       </svg>
     ),
-    vk: (
+    linkedin: (
       <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-        <path d="M15.684 0H8.316C1.592 0 0 1.592 0 8.316v7.368C0 22.408 1.592 24 8.316 24h7.368C22.408 24 24 22.408 24 15.684V8.316C24 1.592 22.408 0 15.684 0zm3.692 17.123h-1.744c-.66 0-.864-.525-2.05-1.727-1.033-1-1.49-1.154-1.744-1.154-.356 0-.458.102-.458.593v1.575c0 .424-.135.678-1.253.678-1.846 0-3.896-1.118-5.335-3.202C4.624 10.857 4 8.57 4 8.096c0-.254.102-.491.593-.491h1.744c.44 0 .61.203.78.677.863 2.49 2.303 4.675 2.896 4.675.22 0 .322-.102.322-.66V9.721c-.068-1.186-.695-1.287-.695-1.71 0-.203.17-.407.44-.407h2.744c.373 0 .508.203.508.643v3.473c0 .372.17.508.271.508.22 0 .407-.136.813-.542 1.254-1.406 2.151-3.574 2.151-3.574.119-.254.322-.491.763-.491h1.744c.525 0 .644.27.525.643-.22 1.017-2.354 4.031-2.354 4.031-.186.305-.254.44 0 .78.186.254.796.779 1.203 1.253.745.847 1.32 1.558 1.473 2.049.17.49-.085.744-.576.744z" />
+        <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
       </svg>
     ),
     coursera: (
@@ -53,11 +53,6 @@ function SocialLinkIcon({ id }) {
     edx: (
       <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
         <path d="M12 2L2 7v10l10 5 10-5V7L12 2zm0 2.18l7.5 3.75v7.14L12 19.82l-7.5-3.75V7.93L12 4.18z" />
-      </svg>
-    ),
-    skype: (
-      <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-        <path d="M12 2C6.48 2 2 6.48 2 12c0 4.84 3.44 8.87 8 9.8V15H8v-3h2V9.5C10 7.57 11.57 6 13.5 6H16v3h-2c-.55 0-1 .45-1 1v2h3v3h-3v6.95c5.05-.5 9-4.76 9-9.95 0-5.52-4.48-10-10-10z" />
       </svg>
     ),
     telegram: (
@@ -81,7 +76,7 @@ function SocialLinkIcon({ id }) {
 }
 
 export default function Profile() {
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
   const { user } = useAuth();
   const [profile, setProfile] = useState(() => getProfile(user?.username));
 
@@ -111,55 +106,62 @@ export default function Profile() {
       setActivityLoading(true);
       activityApi
         .get()
-        .then((data) => {
-          setActivityDates(data.dates || []);
-        })
-        .catch(() => {
-          setActivityDates([]);
-        })
-        .finally(() => {
-          setActivityLoading(false);
-        });
+        .then((data) => setActivityDates(data.dates || []))
+        .catch(() => setActivityDates([]))
+        .finally(() => setActivityLoading(false));
     }
   }, [user]);
 
+  const [certs, setCerts] = useState([]);
+  const [certsLoading, setCertsLoading] = useState(true);
+  const [certDownloading, setCertDownloading] = useState(null);
+
+  useEffect(() => {
+    if (user) {
+      setCertsLoading(true);
+      certificatesApi.list()
+        .then((data) => setCerts(data))
+        .catch(() => setCerts([]))
+        .finally(() => setCertsLoading(false));
+    }
+  }, [user, locale]);
+
+  const downloadCert = async (courseId) => {
+    setCertDownloading(courseId);
+    try {
+      const blob = await certificatesApi.downloadPdf(courseId);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `certificate_course_${courseId}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      // silent
+    } finally {
+      setCertDownloading(null);
+    }
+  };
+
   const activityGrid = useMemo(() => {
-    const rows = 7; // Дни недели (воскресенье = 0, понедельник = 1, ...)
-    const cols = 53; // Недели в году
+    const rows = 7;
+    const cols = 53;
     const grid = [];
-    
-    // Создаем Set для быстрого поиска активных дат
     const activeDatesSet = new Set(activityDates);
-    
-    // Вычисляем дату начала (365 дней назад от сегодня)
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const startDate = new Date(today);
     startDate.setDate(startDate.getDate() - 365);
-    
-    // Находим день недели начала (0 = воскресенье, 1 = понедельник, ...)
-    // Преобразуем: воскресенье (0) -> 6, понедельник (1) -> 0, и т.д.
     let startDayOfWeek = startDate.getDay();
-    startDayOfWeek = startDayOfWeek === 0 ? 6 : startDayOfWeek - 1; // Понедельник = 0
-    
-    // Создаем сетку: заполняем пустые ячейки до начала периода
-    for (let i = 0; i < startDayOfWeek; i++) {
-      grid.push(false);
-    }
-    
-    // Заполняем сетку для каждого дня за последний год
+    startDayOfWeek = startDayOfWeek === 0 ? 6 : startDayOfWeek - 1;
+    for (let i = 0; i < startDayOfWeek; i++) grid.push(false);
     const currentDate = new Date(startDate);
     for (let day = 0; day < 365; day++) {
       const dateStr = currentDate.toISOString().split('T')[0];
       grid.push(activeDatesSet.has(dateStr));
       currentDate.setDate(currentDate.getDate() + 1);
     }
-    
-    // Дополняем до полной сетки (7 * 53 = 371 ячейка)
-    while (grid.length < rows * cols) {
-      grid.push(false);
-    }
-    
+    while (grid.length < rows * cols) grid.push(false);
     return grid;
   }, [activityDates]);
 
@@ -186,7 +188,6 @@ export default function Profile() {
           </div>
           <nav className="profile-links">
             <span className="profile-links-current">{t('profile.profile')}</span>
-            <Link to="/certificates" className="profile-links-link">{t('profile.certificates')}</Link>
           </nav>
           <p className="profile-joined">{t('profile.joined')}</p>
           <p className="profile-userid">{t('profile.userId')}: {userId}</p>
@@ -236,7 +237,7 @@ export default function Profile() {
             <h2 className="profile-activity-title">{t('profile.activity')}</h2>
             <div className="profile-activity-card">
               {activityLoading ? (
-                <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
                   {t('profile.loadingActivity')}
                 </div>
               ) : (
@@ -274,6 +275,58 @@ export default function Profile() {
                 <span className="profile-stat-label">{t('profile.tasksSolved')}</span>
               </div>
             </div>
+          </section>
+
+          {/* ── Сертификаты ─────────────────────────────────────────────── */}
+          <section className="profile-certs-section">
+            <h2 className="profile-certs-title">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/>
+              </svg>
+              {t('profile.certificates')}
+            </h2>
+
+            {certsLoading ? (
+              <p className="profile-certs-empty">{t('common.loading')}</p>
+            ) : certs.length === 0 ? (
+              <p className="profile-certs-empty">
+                {t('profile.certsEmpty')}
+              </p>
+            ) : (
+              <ul className="profile-certs-list">
+                {certs.map((cert) => (
+                  <li key={cert.id} className="profile-cert-card">
+                    <div className="profile-cert-card-icon" aria-hidden>
+                      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/>
+                      </svg>
+                    </div>
+                    <div className="profile-cert-card-info">
+                      <p className="profile-cert-card-course">{cert.course_title}</p>
+                      <p className="profile-cert-card-meta">
+                        <span>№ {cert.certificate_number}</span>
+                        <span>{cert.issued_at}</span>
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      className="profile-cert-card-dl"
+                      onClick={() => downloadCert(cert.course_id)}
+                      disabled={certDownloading === cert.course_id}
+                      title={t('profile.downloadPdf')}
+                    >
+                      {certDownloading === cert.course_id ? (
+                        <span className="profile-cert-spinner" />
+                      ) : (
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                        </svg>
+                      )}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
           </section>
         </main>
       </div>

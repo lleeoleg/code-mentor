@@ -45,6 +45,7 @@ export default function Settings() {
     return { ...(p.socialLinks || {}) };
   });
   const [socialLinksSaved, setSocialLinksSaved] = useState(false);
+  const isEditProfileTab = location.pathname === '/settings';
   const isEmailTab = location.pathname === '/settings/email';
   const isSocialTab = location.pathname === '/settings/social';
   const isSocialLinksTab = location.pathname === '/settings/social-links';
@@ -79,14 +80,47 @@ export default function Settings() {
     }
   }, [isEmailTab, isDetailsTab, user]);
 
+  useEffect(() => {
+    if (!user?.username || !isEditProfileTab) return;
+    let cancelled = false;
+    authApi
+      .me()
+      .then((me) => {
+        if (cancelled || !me) return;
+        setProfileState((prev) => ({
+          ...prev,
+          firstName:
+            me.first_name != null && String(me.first_name).trim() !== ''
+              ? String(me.first_name).trim()
+              : prev.firstName,
+          lastName:
+            me.last_name != null && String(me.last_name).trim() !== ''
+              ? String(me.last_name).trim()
+              : prev.lastName,
+        }));
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.username, isEditProfileTab]);
+
   const setProfile = (patch) => {
     setProfileState((prev) => ({ ...prev, ...patch }));
   };
 
-  const handleSave = (e) => {
+  const handleSave = async (e) => {
     e.preventDefault();
     if (user?.username) {
       saveProfile(user.username, profile);
+      try {
+        await authApi.updateMe({
+          first_name: (profile.firstName || '').trim(),
+          last_name: (profile.lastName || '').trim(),
+        });
+      } catch {
+        /* локальный профиль уже сохранён; сервер при следующем входе можно повторить */
+      }
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     }
@@ -209,28 +243,12 @@ export default function Settings() {
               <h1 className="settings-title">{t('settings.socialLogin')}</h1>
               <ul className="settings-social-list">
                 <li className="settings-social-item">
-                  <span>Facebook</span>
-                  <a href="/api/auth/facebook/login/" className="settings-social-link">{t('settings.connect')}</a>
-                </li>
-                <li className="settings-social-item">
-                  <span>GitHub</span>
-                  <a href="/api/auth/github/login/" className="settings-social-link">{t('settings.connect')}</a>
-                </li>
-                <li className="settings-social-item">
                   <span>Google</span>
                   <a href="/api/auth/google/login/" className="settings-social-link">{t('settings.connect')}</a>
                 </li>
                 <li className="settings-social-item">
-                  <span>VK</span>
-                  <a href="/api/auth/vk/login/" className="settings-social-link">{t('settings.connect')}</a>
-                </li>
-                <li className="settings-social-item">
-                  <span>Twitter</span>
-                  <a href="/api/auth/twitter/login/" className="settings-social-link">{t('settings.connect')}</a>
-                </li>
-                <li className="settings-social-item">
-                  <span>Яндекс</span>
-                  <a href="/api/auth/yandex/login/" className="settings-social-link">{t('settings.connect')}</a>
+                  <span>GitHub</span>
+                  <a href="/api/auth/github/login/" className="settings-social-link">{t('settings.connect')}</a>
                 </li>
               </ul>
             </>

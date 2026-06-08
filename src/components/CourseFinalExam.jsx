@@ -164,32 +164,37 @@ export default function CourseFinalExam({ courseId }) {
   return (
     <div className="exam">
       <div className="exam-head">
-        <h2 className="exam-title">{locale === 'ru' ? 'Финальный тест' : 'Final test'}</h2>
+        <h2 className="exam-title">{locale === 'ru' ? 'Финальный тест' : 'Final Exam'}</h2>
         <div className="exam-meta">
-          {locale === 'ru' ? 'Попыток осталось (3ч): ' : 'Attempts left (3h): '}
-          <strong>{info.attempts_left_24h}</strong>
-          {resetAtMs && info.attempts_left_24h === 0 && remaining ? (
-            <>
-              {' • '}
-              {locale === 'ru' ? 'Снова можно через: ' : 'Available in: '}
-              <strong>
-                {String(remaining.h).padStart(2, '0')}:
-                {String(remaining.m).padStart(2, '0')}:
-                {String(remaining.s).padStart(2, '0')}
-              </strong>
-            </>
-          ) : null}
-          {' • '}
-          {locale === 'ru' ? 'Порог: ' : 'Pass: '}
-          <strong>{info.exam.pass_percent}%</strong>
+          <span className="exam-meta-item">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            {locale === 'ru' ? 'Попыток осталось: ' : 'Attempts left: '}
+            <strong>{info.attempts_left_24h}</strong>
+            {resetAtMs && info.attempts_left_24h === 0 && remaining ? (
+              <span style={{ color: '#ef4444' }}>
+                {' ('}
+                {String(remaining.h).padStart(2, '0')}:{String(remaining.m).padStart(2, '0')}:{String(remaining.s).padStart(2, '0')}
+                {')'}
+              </span>
+            ) : null}
+          </span>
+          <span className="exam-meta-item">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><polyline points="20 6 9 17 4 12"/></svg>
+            {locale === 'ru' ? 'Порог сдачи: ' : 'Pass threshold: '}
+            <strong>{info.exam.pass_percent}%</strong>
+          </span>
         </div>
       </div>
 
       {showCertificateButton && (
         <div className="exam-banner ok">
-          <div className="exam-banner-title">{locale === 'ru' ? 'Сдано' : 'Passed'}</div>
-          <button type="button" className="btn btn-primary" onClick={downloadCertificate}>
-            {locale === 'ru' ? 'Получить сертификат (PDF)' : 'Get certificate (PDF)'}
+          <div className="exam-banner-title">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg>
+            {locale === 'ru' ? 'Тест сдан!' : 'Passed!'}
+          </div>
+          <button type="button" className="exam-cert-btn" onClick={downloadCertificate}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            {locale === 'ru' ? 'Скачать сертификат (PDF)' : 'Download certificate (PDF)'}
           </button>
         </div>
       )}
@@ -197,20 +202,17 @@ export default function CourseFinalExam({ courseId }) {
       {result && (
         <div className={`exam-banner ${result.status === 'passed' ? 'ok' : 'bad'}`}>
           <div className="exam-banner-title">
-            {locale === 'ru' ? 'Последнее прохождение' : 'Last attempt'}
+            {result.status === 'passed'
+              ? <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden><polyline points="20 6 9 17 4 12"/></svg>
+              : <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>}
+            {locale === 'ru' ? 'Последняя попытка' : 'Last attempt'}
           </div>
           <div className="exam-banner-text">
             {locale === 'ru' ? 'Результат: ' : 'Score: '}
             <strong>{result.score_percent}%</strong>
-            {' '}
-            ({locale === 'ru' ? 'порог: ' : 'pass: '}
-            {result.pass_percent}%)
-            {typeof result.correct_answers === 'number' && typeof result.total_questions === 'number' && (
-              <>
-                {' • '}
-                {locale === 'ru' ? 'Правильно: ' : 'Correct: '}
-                <strong>{result.correct_answers}/{result.total_questions}</strong>
-              </>
+            {locale === 'ru' ? ' / порог: ' : ' / pass: '}{result.pass_percent}%
+            {typeof result.correct_answers === 'number' && (
+              <> • {locale === 'ru' ? 'Верно: ' : 'Correct: '}<strong>{result.correct_answers}/{result.total_questions}</strong></>
             )}
           </div>
         </div>
@@ -221,60 +223,61 @@ export default function CourseFinalExam({ courseId }) {
       {!attemptId ? (
         <div className="exam-start">
           <div className="exam-start-text">
-            {locale === 'ru' ? '10 вопросов • 1 правильный ответ' : '10 questions • 1 correct answer'}
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+            {locale === 'ru' ? '10 вопросов · 1 правильный ответ' : '10 questions · 1 correct answer'}
           </div>
-          <button type="button" className="btn btn-primary" onClick={start} disabled={!canStart || starting}>
-            {starting
-              ? (locale === 'ru' ? 'Запуск…' : 'Starting…')
-              : info.attempts_left_24h > 0
-                ? (locale === 'ru' ? 'Начать тест' : 'Start test')
-                : (locale === 'ru' ? 'Лимит исчерпан' : 'Limit reached')}
+          <button type="button" className="exam-start-btn" onClick={start} disabled={!canStart || starting}>
+            {starting ? (
+              locale === 'ru' ? 'Запуск…' : 'Starting…'
+            ) : info.attempts_left_24h > 0 ? (
+              <>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                {locale === 'ru' ? 'Начать тест' : 'Start test'}
+              </>
+            ) : (
+              locale === 'ru' ? 'Лимит исчерпан' : 'Limit reached'
+            )}
           </button>
         </div>
       ) : (
         <div className="exam-questions">
-          {questions.map((q, idx) => (
-            (() => {
-              const r = reviewByQuestionId.get(q.id);
-              const qClass =
-                r ? `exam-q ${r.is_correct ? 'correct' : 'wrong'}` : 'exam-q';
-              return (
-                <div key={q.id} className={qClass}>
-              <div className="exam-q-title">{idx + 1}. {q.text}</div>
-              <div className="exam-choices">
-                {q.choices.map((c) => {
-                  const active = selected[q.id] === c.id;
-                  const r = reviewByQuestionId.get(q.id);
-                  const isCorrectChoice = r && r.correct_choice_id === c.id;
-                  const isSelectedWrong = r && r.selected_choice_id === c.id && !r.is_correct;
-                  const isSelectedCorrect = r && r.selected_choice_id === c.id && r.is_correct;
-                  const locked = !!r;
-                  return (
-                    <button
-                      key={c.id}
-                      type="button"
-                      className={[
-                        'exam-choice',
-                        active ? 'active' : '',
-                        isCorrectChoice ? 'correct' : '',
-                        isSelectedWrong ? 'wrong' : '',
-                        isSelectedCorrect ? 'correct' : '',
-                      ].filter(Boolean).join(' ')}
-                      onClick={() => !locked && setSelected((p) => ({ ...p, [q.id]: c.id }))}
-                      disabled={locked}
-                    >
-                      {c.text}
-                    </button>
-                  );
-                })}
-              </div>
+          {questions.map((q, idx) => {
+            const r = reviewByQuestionId.get(q.id);
+            const qClass = r ? `exam-q ${r.is_correct ? 'correct' : 'wrong'}` : 'exam-q';
+            return (
+              <div key={q.id} className={qClass}>
+                <div className="exam-q-title">{idx + 1}. {q.text}</div>
+                <div className="exam-choices">
+                  {q.choices.map((c) => {
+                    const active = selected[q.id] === c.id;
+                    const isCorrectChoice = r && r.correct_choice_id === c.id;
+                    const isSelectedWrong = r && r.selected_choice_id === c.id && !r.is_correct;
+                    const isSelectedCorrect = r && r.selected_choice_id === c.id && r.is_correct;
+                    const locked = !!r;
+                    return (
+                      <button
+                        key={c.id}
+                        type="button"
+                        className={['exam-choice', active ? 'active' : '', isCorrectChoice ? 'correct' : '', isSelectedWrong ? 'wrong' : '', isSelectedCorrect ? 'correct' : ''].filter(Boolean).join(' ')}
+                        onClick={() => !locked && setSelected((p) => ({ ...p, [q.id]: c.id }))}
+                        disabled={locked}
+                      >
+                        {c.text}
+                      </button>
+                    );
+                  })}
                 </div>
-              );
-            })()
-          ))}
+              </div>
+            );
+          })}
 
-          <button type="button" className="btn btn-primary" onClick={submit} disabled={submitting || !!review}>
-            {submitting ? (locale === 'ru' ? 'Отправка…' : 'Submitting…') : (locale === 'ru' ? 'Отправить ответы' : 'Submit answers')}
+          <button type="button" className="exam-submit-btn" onClick={submit} disabled={submitting || !!review}>
+            {submitting ? (locale === 'ru' ? 'Отправка…' : 'Submitting…') : (
+              <>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden><polyline points="20 6 9 17 4 12"/></svg>
+                {locale === 'ru' ? 'Отправить ответы' : 'Submit answers'}
+              </>
+            )}
           </button>
         </div>
       )}

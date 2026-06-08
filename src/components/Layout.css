@@ -133,20 +133,41 @@
 }
 
 /* Language switcher */
+.header-lang-wrap {
+  position: relative;
+}
+
 .header-lang-btn {
-  padding: 8px 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
   border: 1px solid rgba(255, 255, 255, 0.25);
   border-radius: 8px;
   background: transparent;
   color: rgba(255, 255, 255, 0.9);
-  font-size: 0.85rem;
-  font-weight: 600;
   cursor: pointer;
   font-family: inherit;
+  transition: background 0.15s, color 0.15s;
 }
-.header-lang-btn:hover {
+.header-lang-btn:hover,
+.header-lang-btn[aria-expanded="true"] {
   background: rgba(255, 255, 255, 0.1);
   color: #fff;
+}
+
+.header-lang-dropdown {
+  right: 0;
+  left: auto;
+  min-width: 140px;
+}
+
+.header-dropdown-item--active {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+  font-weight: 600;
 }
 
 /* Search */

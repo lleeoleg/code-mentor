@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { courses, enrollments, exams } from '../api';
 import { useFavorites } from '../contexts/FavoritesContext';
@@ -13,7 +13,7 @@ import FavoriteButton from '../components/FavoriteButton';
 import { getCompletedLessonIds } from '../utils/progressStore';
 
 function FavoriteCourseCard({ course }) {
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
   const logo = getCourseLogo(course);
   const levelKey = getLevelKey(course.level_display ?? course.level);
   return (
@@ -38,9 +38,120 @@ function FavoriteCourseCard({ course }) {
             ? course.description.slice(0, 100) + (course.description.length > 100 ? '…' : '')
             : t('home.noDescription')}
         </p>
-        <span className="course-card-price">{formatCoursePrice(course.price, course)}</span>
+        <span className="course-card-price">
+          {formatCoursePrice(course.price, {
+            freeLabel: t('common.priceFree'),
+            numberLocale: locale === 'en' ? 'en-US' : 'ru-RU',
+          })}
+        </span>
       </div>
     </Link>
+  );
+}
+
+function FavoritesSlider({ courses, loading, title, emptyText, loadingText }) {
+  const trackRef = useRef(null);
+  const barRef = useRef(null);
+  const [scrollPct, setScrollPct] = useState(0);
+
+  const isDraggingTrack = useRef(false);
+  const dragStartX = useRef(0);
+  const dragStartScroll = useRef(0);
+  const isDraggingThumb = useRef(false);
+  const thumbDragStartX = useRef(0);
+  const thumbDragStartScroll = useRef(0);
+
+  const updateScroll = () => {
+    const el = trackRef.current;
+    if (!el) return;
+    const max = el.scrollWidth - el.clientWidth;
+    setScrollPct(max > 0 ? el.scrollLeft / max : 0);
+  };
+
+  const onTrackMouseDown = (e) => {
+    if (e.button !== 0) return;
+    isDraggingTrack.current = true;
+    dragStartX.current = e.clientX;
+    dragStartScroll.current = trackRef.current.scrollLeft;
+    e.preventDefault();
+  };
+
+  useEffect(() => {
+    const onMouseMove = (e) => {
+      if (isDraggingTrack.current) {
+        trackRef.current.scrollLeft = dragStartScroll.current - (e.clientX - dragStartX.current);
+      }
+      if (isDraggingThumb.current) {
+        const bar = barRef.current;
+        const track = trackRef.current;
+        if (!bar || !track) return;
+        const barW = bar.clientWidth;
+        const dx = e.clientX - thumbDragStartX.current;
+        const max = track.scrollWidth - track.clientWidth;
+        track.scrollLeft = thumbDragStartScroll.current + (dx / (barW * 0.8)) * max;
+      }
+    };
+    const onMouseUp = () => {
+      isDraggingTrack.current = false;
+      isDraggingThumb.current = false;
+    };
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+    return () => {
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+    };
+  }, []);
+
+  const onThumbMouseDown = (e) => {
+    if (e.button !== 0) return;
+    isDraggingThumb.current = true;
+    thumbDragStartX.current = e.clientX;
+    thumbDragStartScroll.current = trackRef.current.scrollLeft;
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const onBarClick = (e) => {
+    const bar = barRef.current;
+    const track = trackRef.current;
+    if (!bar || !track) return;
+    const rect = bar.getBoundingClientRect();
+    const pct = (e.clientX - rect.left) / rect.width;
+    track.scrollLeft = pct * (track.scrollWidth - track.clientWidth);
+  };
+
+  return (
+    <section className="my-learning-section">
+      <h2 className="my-learning-section-title">{title}</h2>
+      {loading ? (
+        <p className="text-muted">{loadingText}</p>
+      ) : courses.length === 0 ? (
+        <p className="text-muted">{emptyText}</p>
+      ) : (
+        <div className="fav-slider">
+          <div
+            className="fav-slider-track"
+            ref={trackRef}
+            onScroll={updateScroll}
+            onMouseDown={onTrackMouseDown}
+          >
+            {courses.map((course) => (
+              <FavoriteCourseCard key={course.id} course={course} />
+            ))}
+          </div>
+          <div className="fav-slider-nav">
+            <div className="fav-slider-bar" ref={barRef} onClick={onBarClick}>
+              <div
+                className="fav-slider-thumb"
+                style={{ left: `calc(${scrollPct * 80}%)` }}
+                onMouseDown={onThumbMouseDown}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -70,7 +181,7 @@ export default function MyLearning() {
       })
       .catch(() => setAllCourses([]))
       .finally(() => setLoading(false));
-  }, [favoriteIds.join(',')]);
+  }, [favoriteIds.join(','), locale]);
 
   useEffect(() => {
     enrollments
@@ -78,7 +189,7 @@ export default function MyLearning() {
       .then(setEnrolledList)
       .catch(() => setEnrolledList([]))
       .finally(() => setEnrollmentsLoading(false));
-  }, []);
+  }, [locale]);
 
   useEffect(() => {
     const onProgressSynced = () => setProgressTick((n) => n + 1);
@@ -136,7 +247,7 @@ export default function MyLearning() {
     return () => {
       cancelled = true;
     };
-  }, [enrolledList]);
+  }, [enrolledList, locale]);
 
   const countLessons = (modules) =>
     (modules || []).reduce((sum, m) => sum + ((m.lessons || []).length), 0);
@@ -169,20 +280,13 @@ export default function MyLearning() {
       <h1 className="page-title">{t('myLearning.title')}</h1>
 
       {hasFavorites && (
-        <section className="my-learning-section my-learning-favorites">
-          <h2 className="my-learning-section-title">{t('myLearning.favorites')}</h2>
-          {loading ? (
-            <p className="text-muted">{t('myLearning.loading')}</p>
-          ) : allCourses.length === 0 ? (
-            <p className="text-muted">{t('myLearning.coursesNotFound')}</p>
-          ) : (
-            <div className="course-grid course-grid-favorites">
-              {allCourses.map((course) => (
-                <FavoriteCourseCard key={course.id} course={course} />
-              ))}
-            </div>
-          )}
-        </section>
+        <FavoritesSlider
+          courses={allCourses}
+          loading={loading}
+          title={t('myLearning.favorites')}
+          emptyText={t('myLearning.coursesNotFound')}
+          loadingText={t('myLearning.loading')}
+        />
       )}
 
       <section className="my-learning-section">
@@ -213,18 +317,18 @@ export default function MyLearning() {
                     const completed = getCompletedLessonIds(e.course);
                     const percent = totalLessons ? Math.min(100, Math.round((completed.length / totalLessons) * 100)) : 0;
                     return (
-                      <div style={{ marginTop: 8, color: 'var(--text-muted)', fontSize: '0.95rem' }}>
-                        <div style={{ marginBottom: 6 }}>
-                          {locale === 'ru' ? 'Прогресс курса: ' : 'Course progress: '}
-                          <strong>{percent}%</strong>
-                          {totalLessons ? (
-                            <span> ({completed.length}/{totalLessons})</span>
-                          ) : null}
-                          <div style={{ marginTop: 6, height: 8, background: 'var(--border)', borderRadius: 999, overflow: 'hidden' }}>
-                            <div style={{ width: `${percent}%`, height: '100%', background: '#16a34a' }} />
+                      <div className="enrolled-meta">
+                        <div className="enrolled-progress-row">
+                          <span className="enrolled-progress-label">
+                            {locale === 'ru' ? 'Прогресс курса: ' : 'Course progress: '}
+                            <strong>{percent}%</strong>
+                            {totalLessons ? <span className="enrolled-progress-count"> ({completed.length}/{totalLessons})</span> : null}
+                          </span>
+                          <div className="enrolled-progress-bar">
+                            <div className="enrolled-progress-fill" style={{ width: `${percent}%` }} />
                           </div>
                         </div>
-                        <div>
+                        <div className="enrolled-meta-row">
                           {locale === 'ru' ? 'Попыток осталось (3ч): ' : 'Attempts left (3h): '}
                           <strong>{info.attempts_left_24h}</strong>
                           {info.attempts_reset_at ? (
@@ -239,16 +343,16 @@ export default function MyLearning() {
                           ) : null}
                         </div>
                         {last ? (
-                          <div style={{ marginTop: 4 }}>
+                          <div className="enrolled-meta-row">
                             {locale === 'ru' ? 'Последняя попытка: ' : 'Last attempt: '}
                             <strong>{last.score_percent}%</strong>
                             {' • '}
-                            <span>{last.status}</span>
+                            <span className={last.status === 'passed' ? 'enrolled-status-pass' : 'enrolled-status-fail'}>{last.status}</span>
                           </div>
                         ) : null}
                         {Array.isArray(info.attempts_recent) && info.attempts_recent.length > 0 ? (
-                          <details style={{ marginTop: 6 }}>
-                            <summary style={{ cursor: 'pointer' }}>
+                          <details className="enrolled-history">
+                            <summary>
                               {locale === 'ru' ? 'История тестирований' : 'Exam history'}
                             </summary>
                             <ul style={{ margin: '8px 0 0', paddingLeft: 18 }}>
@@ -267,12 +371,22 @@ export default function MyLearning() {
                     );
                   })()}
                 </div>
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                  <Link to={`/courses/${e.course}/learn`} className="btn btn-primary">
-                    {t('myLearning.continue')}
+                <div className="enrolled-actions">
+                  <Link
+                    to={`/courses/${e.course}/learn`}
+                    className="btn btn-primary enrolled-action-btn"
+                    data-tooltip={t('myLearning.continue')}
+                    aria-label={t('myLearning.continue')}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden><polygon points="5 3 19 12 5 21 5 3"/></svg>
                   </Link>
-                  <Link to={`/courses/${e.course}/learn?lesson=exam`} className="btn btn-secondary">
-                    {locale === 'ru' ? 'Тест' : 'Exam'}
+                  <Link
+                    to={`/courses/${e.course}/learn?lesson=exam`}
+                    className="btn btn-secondary enrolled-action-btn enrolled-action-btn--exam"
+                    data-tooltip={locale === 'ru' ? 'Итоговый тест' : 'Final Exam'}
+                    aria-label={locale === 'ru' ? 'Итоговый тест' : 'Final Exam'}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
                   </Link>
                 </div>
               </li>

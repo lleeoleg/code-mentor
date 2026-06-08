@@ -6,10 +6,11 @@ import {
   levelBadgeClass,
   getLevelKey,
   formatCoursePrice,
-  LEVEL_FILTER_OPTIONS,
-  PRICE_FILTER_OPTIONS,
   filterCoursesByLevel,
 } from '../utils/courseHelpers';
+
+const PRICE_FILTER_VALUES = ['', 'free', 'certificate'];
+const LEVEL_FILTER_VALUES = ['', 'beginner', 'intermediate', 'advanced'];
 import { getCourseLogo } from '../utils/courseLogos';
 import FavoriteButton from '../components/FavoriteButton';
 
@@ -38,7 +39,7 @@ function filterBySearch(coursesList, query) {
 }
 
 export default function CourseList() {
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
   const [searchParams] = useSearchParams();
   const searchQ = searchParams.get('q') || '';
   const [list, setList] = useState([]);
@@ -57,7 +58,7 @@ export default function CourseList() {
       .then(setList)
       .catch((err) => setError(err.response?.status === 401 ? t('courses.needLogin') : (err.message || t('courses.loadError'))))
       .finally(() => setLoading(false));
-  }, [priceFilter, searchQ, t]);
+  }, [priceFilter, searchQ, t, locale]);
 
   const byLevel = filterCoursesByLevel(list, levelFilter);
   const filtered = byLevel;
@@ -74,27 +75,27 @@ export default function CourseList() {
 
       <div className="filter-bar">
         <span className="filter-label">{t('courses.price')}:</span>
-        {PRICE_FILTER_OPTIONS.map((opt) => (
+        {PRICE_FILTER_VALUES.map((value) => (
           <button
-            key={opt.value || 'all'}
+            key={value || 'all'}
             type="button"
-            className={`filter-chip ${priceFilter === opt.value ? 'active' : ''}`}
-            onClick={() => setPriceFilter(opt.value)}
+            className={`filter-chip ${priceFilter === value ? 'active' : ''}`}
+            onClick={() => setPriceFilter(value)}
           >
-            {priceOptionLabel(opt.value, t)}
+            {priceOptionLabel(value, t)}
           </button>
         ))}
       </div>
       <div className="filter-bar">
         <span className="filter-label">{t('courses.level')}:</span>
-        {LEVEL_FILTER_OPTIONS.map((opt) => (
+        {LEVEL_FILTER_VALUES.map((value) => (
           <button
-            key={opt.value || 'all'}
+            key={value || 'all'}
             type="button"
-            className={`filter-chip ${levelFilter === opt.value ? 'active' : ''}`}
-            onClick={() => setLevelFilter(opt.value)}
+            className={`filter-chip ${levelFilter === value ? 'active' : ''}`}
+            onClick={() => setLevelFilter(value)}
           >
-            {levelOptionLabel(opt.value, t)}
+            {levelOptionLabel(value, t)}
           </button>
         ))}
       </div>
@@ -132,7 +133,12 @@ export default function CourseList() {
                       ? course.description.slice(0, 120) + (course.description.length > 120 ? '…' : '')
                       : t('home.noDescription')}
                   </p>
-                  <span className="course-card-price">{formatCoursePrice(course.price, course)}</span>
+                  <span className="course-card-price">
+                    {formatCoursePrice(course.price, {
+                      freeLabel: t('common.priceFree'),
+                      numberLocale: locale === 'en' ? 'en-US' : 'ru-RU',
+                    })}
+                  </span>
                 </div>
               </Link>
             );

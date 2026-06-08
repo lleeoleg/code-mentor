@@ -10,6 +10,14 @@ const api = axios.create({
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('access');
   if (token) config.headers.Authorization = `Bearer ${token}`;
+  try {
+    const lang = localStorage.getItem('codementor_lang') || 'ru';
+    if (lang === 'en') {
+      config.params = { ...(config.params || {}), lang: 'en' };
+    }
+  } catch {
+    // ignore
+  }
   return config;
 });
 
@@ -65,6 +73,12 @@ export const exams = {
     api.get(`/courses/${courseId}/certificate/pdf/`, { responseType: 'blob' }).then((r) => r.data),
 };
 
+export const certificates = {
+  list: () => api.get('/certificates/').then((r) => r.data),
+  downloadPdf: (courseId) =>
+    api.get(`/courses/${courseId}/certificate/pdf/`, { responseType: 'blob' }).then((r) => r.data),
+};
+
 export const lessons = {
   get: (id) => api.get(`/lessons/${id}/`).then((r) => r.data),
 };
@@ -100,6 +114,11 @@ export const comments = {
   update: (commentId, text) =>
     api.patch(`/comments/${commentId}/`, { text }).then((r) => r.data),
   delete: (commentId) => api.delete(`/comments/${commentId}/`).then((r) => r.data),
+};
+
+export const ai = {
+  chat: (message, history = []) =>
+    api.post('/ai/chat/', { message, history }, { timeout: 90000 }).then((r) => r.data),
 };
 
 export default api;
