@@ -164,10 +164,3 @@ GOOGLE_OAUTH2_CLIENT_SECRET = os.environ.get('GOOGLE_OAUTH2_CLIENT_SECRET', '')
 
 # Stripe (оплата курсов): задайте STRIPE_SECRET_KEY в переменных окружения
 STRIPE_SECRET_KEY = os.environ.get('STRIPE_SECRET_KEY', '')
-
-# ИИ-помощник: GEMINI_API_KEY или OPENAI_API_KEY + AI_PROVIDER=gemini|openai
-AI_PROVIDER = os.environ.get('AI_PROVIDER', '').strip().lower()
-GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY', '')
-GEMINI_MODEL = os.environ.get('GEMINI_MODEL', 'gemini-2.5-flash-lite')
-OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY', '')
-OPENAI_MODEL = os.environ.get('OPENAI_MODEL', 'gpt-4o-mini')

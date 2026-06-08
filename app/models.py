@@ -13,7 +13,9 @@ class Level(models.TextChoices):
 class Course(models.Model):
     """Курс для обучения."""
     title = models.CharField('Название', max_length=255)
+    title_en = models.CharField('Title (EN)', max_length=255, blank=True, default='')
     description = models.TextField('Описание', blank=True)
+    description_en = models.TextField('Description (EN)', blank=True, default='')
     level = models.CharField(
         'Уровень',
         max_length=20,
@@ -45,6 +47,7 @@ class Module(models.Model):
     """Модуль курса (например, «Введение»)."""
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='modules')
     title = models.CharField('Название', max_length=255)
+    title_en = models.CharField('Title (EN)', max_length=255, blank=True, default='')
     order = models.PositiveIntegerField('Порядок', default=0)
 
     class Meta:
@@ -60,14 +63,23 @@ class Lesson(models.Model):
     """Урок в модуле."""
     module = models.ForeignKey(Module, on_delete=models.CASCADE, related_name='lessons')
     title = models.CharField('Название', max_length=255)
+    title_en = models.CharField('Title (EN)', max_length=255, blank=True, default='')
     order = models.PositiveIntegerField('Порядок', default=0)
     content_type = models.CharField(
         'Тип контента',
         max_length=20,
-        choices=[('video', 'Видео'), ('text', 'Текст')],
+        choices=[('video', 'Видео'), ('text', 'Текст'), ('code', 'Код (Python)')],
         default='text',
     )
     content = models.TextField('Контент (URL видео или текст)', blank=True)
+    content_en = models.TextField('Content (EN)', blank=True, default='')
+    video_summary = models.TextField(
+        'Краткое содержание видео (под плеером)',
+        blank=True,
+        default='',
+        help_text='Для уроков с типом «Видео»: пересказ темы под роликом.',
+    )
+    video_summary_en = models.TextField('Video summary (EN)', blank=True, default='')
     is_free = models.BooleanField('Доступен в бесплатной версии', default=False)
 
     class Meta:
@@ -158,6 +170,7 @@ class CourseExam(models.Model):
     course = models.OneToOneField(Course, on_delete=models.CASCADE, related_name='final_exam')
     is_active = models.BooleanField('Активен', default=True)
     pass_percent = models.PositiveIntegerField('Порог прохождения (%)', default=80)
+    max_attempts = models.PositiveIntegerField('Макс. попыток (за 24ч)', default=3)
     questions_count = models.PositiveIntegerField('Количество вопросов', default=10)
     created_at = models.DateTimeField('Создан', auto_now_add=True)
     updated_at = models.DateTimeField('Обновлён', auto_now=True)
@@ -284,6 +297,7 @@ class NewsItem(models.Model):
     """Запись в блоке «Что нового» / новости сайта."""
     published_at = models.DateTimeField('Дата и время публикации')
     content = models.TextField('Текст (поддерживается HTML для ссылок)')
+    content_en = models.TextField('Text (EN, HTML)', blank=True, default='')
     created_at = models.DateTimeField('Создано', auto_now_add=True)
 
     class Meta:

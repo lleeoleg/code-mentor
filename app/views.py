@@ -19,6 +19,7 @@ from rest_framework import generics, status
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
+from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView as JWTTokenObtainPairView
 from rest_framework_simplejwt.views import TokenRefreshView as JWTTokenRefreshView
@@ -39,6 +40,7 @@ from .models import (
     ExamAnswer,
     CourseCertificate,
 )
+from .i18n_api import get_api_lang
 from .serializers import (
     UserRegisterSerializer,
     UserMeSerializer,
@@ -52,7 +54,54 @@ from .serializers import (
     CourseExamInfoSerializer,
     ExamQuestionPublicSerializer,
     ExamSubmitSerializer,
+    AIChatSerializer,
 )
+from .ai_assistant import chat as ai_chat, AIConfigurationError, AIRequestError
+
+
+class LenientJWTAuthentication(JWTAuthentication):
+    """Как JWT, но битый/просроченный токен не даёт 401 — остаёмся анонимом (для публичных GET)."""
+
+    def authenticate(self, request):
+        try:
+            return super().authenticate(request)
+        except Exception:
+            return None
+
+
+def course_is_free(course: Course) -> bool:
+    p = course.price
+    if p is None:
+        return True
+    try:
+        return float(p) <= 0
+    except (TypeError, ValueError):
+        return False
+
+
+def certificate_holder_name(user) -> str:
+    """Имя на сертификате: first_name + last_name из профиля, иначе полное имя Django, иначе username."""
+    first = (getattr(user, 'first_name', None) or '').strip()
+    last = (getattr(user, 'last_name', None) or '').strip()
+    if first or last:
+        return ' '.join(p for p in (first, last) if p).strip()
+    full = (user.get_full_name() or '').strip()
+    if full:
+        return full
+    return (getattr(user, 'username', None) or '').strip() or 'Student'
+
+
+def ensure_free_course_enrollment(request, course: Course) -> None:
+    user = getattr(request, 'user', None)
+    if not user or not user.is_authenticated:
+        return
+    if not course_is_free(course):
+        return
+    Enrollment.objects.get_or_create(
+        user=user,
+        course=course,
+        defaults={'source': Enrollment.Source.FREE_TRIAL},
+    )
 
 
 class TokenObtainPairView(JWTTokenObtainPairView):
@@ -89,21 +138,12 @@ class RegisterView(generics.CreateAPIView):
 
 
 class CurrentUserView(generics.RetrieveUpdateAPIView):
-    """Текущий пользователь: GET — данные, PATCH — обновить email."""
+    """Текущий пользователь: GET — данные, PATCH — email, имя и фамилия (для сертификата)."""
     serializer_class = UserMeSerializer
     permission_classes = (IsAuthenticated,)
 
     def get_object(self):
         return self.request.user
-
-    def patch(self, request, *args, **kwargs):
-        user = request.user
-        new_email = request.data.get('email')
-        if new_email is not None:
-            user.email = new_email.strip()
-            user.save()
-        serializer = self.get_serializer(user)
-        return Response(serializer.data)
 
 
 class SetPasswordView(generics.GenericAPIView):
@@ -144,7 +184,7 @@ class CourseListAPIView(generics.ListAPIView):
     """
     serializer_class = CourseSerializer
     permission_classes = (AllowAny,)
-    authentication_classes = ()  # не проверяем JWT — избегаем 500 при невалидном токене
+    authentication_classes = (LenientJWTAuthentication,)
 
     def get_queryset(self):
         qs = Course.objects.all()
@@ -158,13 +198,14 @@ class CourseListAPIView(generics.ListAPIView):
             qs = qs.filter(level=level)
         search_q = self.request.query_params.get('q', '').strip()
         if search_q:
-            q_lower = search_q.lower()
-            words = [w for w in q_lower.split() if w]
-            if words:
-                for word in words:
-                    qs = qs.filter(
-                        Q(title__icontains=word) | Q(description__icontains=word)
-                    )
+            words = [w for w in search_q.lower().split() if w]
+            for word in words:
+                qs = qs.filter(
+                    Q(title__icontains=word)
+                    | Q(description__icontains=word)
+                    | Q(title_en__icontains=word)
+                    | Q(description_en__icontains=word)
+                )
         return qs
 
 
@@ -173,7 +214,7 @@ class CourseDetailAPIView(generics.RetrieveAPIView):
     queryset = Course.objects.all()
     serializer_class = CourseSerializer
     permission_classes = (AllowAny,)
-    authentication_classes = ()
+    authentication_classes = (LenientJWTAuthentication,)
 
 
 class CourseExamInfoView(generics.GenericAPIView):
@@ -188,7 +229,7 @@ class CourseExamInfoView(generics.GenericAPIView):
 
         data = CourseExamInfoSerializer(exam).data
 
-        attempts_limit = 50  # временно для тестирования
+        attempts_limit = exam.max_attempts
         attempts_left = attempts_limit
         reset_at = None
         attempts_recent = []
@@ -246,16 +287,16 @@ class CourseExamStartView(generics.GenericAPIView):
         if not exam or not exam.is_active:
             return Response({'detail': 'Тест недоступен.'}, status=status.HTTP_404_NOT_FOUND)
 
-        # Лимит попыток: временно увеличен для тестирования.
+        attempts_limit = exam.max_attempts
         since = timezone.now() - timedelta(hours=3)
         window_qs = ExamAttempt.objects.filter(exam=exam, user=request.user, started_at__gte=since).order_by('started_at')
         used = window_qs.count()
-        if used >= 50:
+        if used >= attempts_limit:
             first_in_window = window_qs.first()
             reset_at = (first_in_window.started_at + timedelta(hours=3)) if first_in_window else None
             return Response(
                 {
-                    'detail': 'Лимит попыток: 50 за последние 3 часа.',
+                    'detail': f'Лимит попыток: {attempts_limit} за последние 3 часа.',
                     'attempts_reset_at': reset_at,
                 },
                 status=status.HTTP_429_TOO_MANY_REQUESTS,
@@ -379,6 +420,30 @@ class ExamAttemptSubmitView(generics.GenericAPIView):
         })
 
 
+class UserCertificatesView(generics.GenericAPIView):
+    """Список всех сертификатов текущего пользователя."""
+    permission_classes = (IsAuthenticated,)
+
+    def get(self, request):
+        certs = CourseCertificate.objects.filter(user=request.user).select_related('course').order_by('-issued_at')
+        lang_en = get_api_lang(request) == 'en'
+        data = [
+            {
+                'id': c.id,
+                'certificate_number': c.certificate_number,
+                'issued_at': c.issued_at.strftime('%Y-%m-%d'),
+                'course_id': c.course.id,
+                'course_title': (
+                    ((getattr(c.course, 'title_en', None) or '').strip() or c.course.title)
+                    if lang_en
+                    else c.course.title
+                ),
+            }
+            for c in certs
+        ]
+        return Response(data)
+
+
 class CourseCertificatePdfView(generics.GenericAPIView):
     """Скачать сертификат в PDF (EN)."""
     permission_classes = (IsAuthenticated,)
@@ -416,11 +481,12 @@ class CourseCertificatePdfView(generics.GenericAPIView):
         draw.text((width // 2, 140), 'CERTIFICATE OF COMPLETION', fill=(15, 23, 42), anchor='mm', font=title_font)
         draw.text((width // 2, 240), 'This certifies that', fill=(55, 65, 81), anchor='mm', font=text_font)
 
-        full_name = (request.user.get_full_name() or request.user.username).strip()
+        full_name = certificate_holder_name(request.user)
+        display_title = (getattr(course, 'title_en', '') or '').strip() or course.title
         draw.text((width // 2, 340), full_name, fill=(17, 24, 39), anchor='mm', font=name_font)
 
         draw.text((width // 2, 430), 'has successfully passed the final exam for', fill=(55, 65, 81), anchor='mm', font=text_font)
-        draw.text((width // 2, 505), f'Module: {course.title}', fill=(17, 24, 39), anchor='mm', font=text_font)
+        draw.text((width // 2, 505), f'Module: {display_title}', fill=(17, 24, 39), anchor='mm', font=text_font)
 
         date_str = cert.issued_at.strftime('%Y-%m-%d')
         draw.text((width // 2, 610), f'Date: {date_str}', fill=(55, 65, 81), anchor='mm', font=text_font)
@@ -490,6 +556,7 @@ class CreateCheckoutSessionView(generics.GenericAPIView):
         cancel_url = f"{frontend_url}/courses/{course.id}?payment=cancelled"
 
         stripe.api_key = secret
+        prod_name = ((course.title_en or '').strip() or course.title)
         try:
             session = stripe.checkout.Session.create(
                 mode='payment',
@@ -499,8 +566,8 @@ class CreateCheckoutSessionView(generics.GenericAPIView):
                         'currency': currency,
                         'unit_amount': unit_amount,
                         'product_data': {
-                            'name': course.title,
-                            'description': (course.description or '')[:500] or course.title,
+                            'name': prod_name,
+                            'description': (course.description or '')[:500] or prod_name,
                         },
                     },
                     'quantity': 1,
@@ -538,12 +605,12 @@ class TryFreeView(generics.GenericAPIView):
 class CourseCurriculumView(generics.GenericAPIView):
     """Программа курса: модули и уроки (для сайдбара). Без авторизации — только структура."""
     permission_classes = (AllowAny,)
-    authentication_classes = ()
+    authentication_classes = (LenientJWTAuthentication,)
 
     def get(self, request, pk):
         course = get_object_or_404(Course, pk=pk)
         modules = Module.objects.filter(course=course).prefetch_related('lessons')
-        serializer = ModuleSerializer(modules, many=True)
+        serializer = ModuleSerializer(modules, many=True, context={'request': request})
         return Response(serializer.data)
 
 
@@ -551,6 +618,7 @@ class LessonDetailView(generics.RetrieveAPIView):
     """Детали урока (контент). Бесплатные — всем; платные — только записанным на курс."""
     serializer_class = LessonDetailSerializer
     permission_classes = (AllowAny,)
+    authentication_classes = (LenientJWTAuthentication,)
 
     def get_queryset(self):
         return Lesson.objects.select_related('module', 'module__course')
@@ -577,7 +645,7 @@ class LessonDetailView(generics.RetrieveAPIView):
                     {'detail': 'Этот урок доступен после покупки курса.', 'locked': True},
                     status=status.HTTP_403_FORBIDDEN,
                 )
-        serializer = self.get_serializer(lesson)
+        serializer = self.get_serializer(lesson, context={'request': request})
         return Response(serializer.data)
 
 
@@ -879,3 +947,25 @@ class TwitterLoginStubView(View):
 class YandexLoginStubView(View):
     def get(self, request):
         return _social_stub(request, 'yandex')
+
+
+class AIChatView(generics.GenericAPIView):
+    """ИИ-помощник по программированию для авторизованных пользователей."""
+    serializer_class = AIChatSerializer
+    permission_classes = (IsAuthenticated,)
+
+    def post(self, request):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        lang = get_api_lang(request)
+        try:
+            reply = ai_chat(
+                message=serializer.validated_data['message'],
+                history=serializer.validated_data.get('history') or [],
+                lang=lang,
+            )
+        except AIConfigurationError as e:
+            return Response({'detail': str(e)}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        except AIRequestError as e:
+            return Response({'detail': str(e)}, status=status.HTTP_502_BAD_GATEWAY)
+        return Response({'reply': reply})

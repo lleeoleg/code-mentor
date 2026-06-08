@@ -8,7 +8,6 @@ urlpatterns = [
     path('auth/token/refresh/', views.TokenRefreshView.as_view(), name='token_refresh'),
     path('auth/me/', views.CurrentUserView.as_view(), name='current-user'),
     path('auth/password/', views.SetPasswordView.as_view(), name='set-password'),
-    # OAuth
     path('auth/google/login/', views.GoogleLoginView.as_view(), name='google-login'),
     path('auth/google/callback/', views.GoogleCallbackView.as_view(), name='google-callback'),
     path('auth/vk/login/', views.VkLoginStubView.as_view(), name='vk-login'),
@@ -24,6 +23,7 @@ urlpatterns = [
     path('courses/<int:pk>/exam/', views.CourseExamInfoView.as_view(), name='course-exam-info'),
     path('courses/<int:pk>/exam/start/', views.CourseExamStartView.as_view(), name='course-exam-start'),
     path('exam-attempts/<int:attempt_id>/submit/', views.ExamAttemptSubmitView.as_view(), name='exam-attempt-submit'),
+    path('certificates/', views.UserCertificatesView.as_view(), name='user-certificates'),
     path('courses/<int:pk>/certificate/pdf/', views.CourseCertificatePdfView.as_view(), name='course-certificate-pdf'),
     path('lessons/<int:pk>/', views.LessonDetailView.as_view(), name='lesson-detail'),
     path('lessons/<int:lesson_id>/comments/', views.LessonCommentsView.as_view(), name='lesson-comments'),
@@ -36,4 +36,5 @@ urlpatterns = [
     path('lesson-progress/sync/', views.LessonProgressSyncView.as_view(), name='lesson-progress-sync'),
     path('activity/', views.UserActivityView.as_view(), name='user-activity'),
     path('news/', views.NewsListAPIView.as_view(), name='news-list'),
+    path('ai/chat/', views.AIChatView.as_view(), name='ai-chat'),
 ]
